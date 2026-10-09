@@ -1,4 +1,4 @@
-import { LogEntry, Tag } from '../types';
+import type { LogEntry, Tag } from '../types';
 
 const BASE_URL = 'https://sheets.googleapis.com/v4/spreadsheets';
 
