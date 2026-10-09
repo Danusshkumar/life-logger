@@ -221,7 +221,7 @@ export default function App() {
     selectedTags.length > 0 || description.trim().length > 0;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-20">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-24 overflow-x-hidden max-w-[100vw]">
       {/* Clean Ultra-Minimal Top Header */}
       <Header
         isAuthenticated={!!accessToken}
@@ -295,43 +295,43 @@ export default function App() {
         )}
       </main>
 
-      {/* Mobile Native-Style Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-4 py-2 shadow-2xl">
-        <div className="max-w-xl mx-auto flex items-center justify-around">
+      {/* Perfectly Symmetrical Equal-Grid Bottom Navigation Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800/80 px-2 py-2 shadow-2xl">
+        <div className="grid grid-cols-3 max-w-md mx-auto w-full items-center text-center">
           <button
             onClick={() => setActiveTab('log')}
-            className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
+            className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all ${
               activeTab === 'log'
                 ? 'text-indigo-400 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <Calendar className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px]">Daily Log</span>
+            <span className="text-[10px] tracking-tight">Daily Log</span>
           </button>
 
           <button
             onClick={() => setActiveTab('history')}
-            className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
+            className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all ${
               activeTab === 'history'
                 ? 'text-indigo-400 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <History className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px]">Timeline ({logs.filter(l => l.activities?.length || l.description).length})</span>
+            <span className="text-[10px] tracking-tight">Timeline</span>
           </button>
 
           <button
             onClick={() => setActiveTab('docs')}
-            className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
+            className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all ${
               activeTab === 'docs'
                 ? 'text-indigo-400 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
             <BookOpen className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px]">Guide & Settings</span>
+            <span className="text-[10px] tracking-tight">Guide</span>
           </button>
         </div>
       </nav>
