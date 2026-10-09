@@ -164,8 +164,9 @@ export default function App() {
     if (!config.spreadsheetId) {
       setErrorModal({
         title: 'Missing Spreadsheet URL',
-        message: 'Please paste your Google Sheet URL in Settings before saving logs.',
+        message: 'Please paste your Google Sheet URL in the Guide & Settings tab before saving logs.',
       });
+      setActiveTab('docs');
       return;
     }
 
@@ -220,8 +221,8 @@ export default function App() {
     selectedTags.length > 0 || description.trim().length > 0;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-16">
-      {/* Header Bar */}
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-20">
+      {/* Clean Ultra-Minimal Top Header */}
       <Header
         isAuthenticated={!!accessToken}
         onLogin={requestGoogleLogin}
@@ -230,65 +231,27 @@ export default function App() {
           setAccessToken(null);
           showToast('Signed out of Google');
         }}
-        config={config}
-        onSaveConfig={handleSaveConfig}
         onRefresh={loadSheetData}
         isSyncing={isLoading}
-        activeTab={activeTab}
-        onSelectTab={setActiveTab}
       />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-xl w-full mx-auto p-4">
         {/* Banner if Google Spreadsheet URL missing */}
         {!config.spreadsheetId && (
-          <div className="bg-amber-950/40 border border-amber-800/60 rounded-2xl p-4 mb-4 text-xs text-amber-200 flex items-start space-x-3">
+          <div
+            onClick={() => setActiveTab('docs')}
+            className="bg-amber-950/40 border border-amber-800/60 rounded-2xl p-4 mb-4 text-xs text-amber-200 flex items-start space-x-3 cursor-pointer hover:border-amber-700 transition-all shadow-lg"
+          >
             <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-amber-300">Spreadsheet URL Required</p>
               <p className="text-amber-200/80 mt-1">
-                Tap <b>⚙️ Settings</b> in the top right to paste your Google Sheet URL or ID.
+                Tap here to open the <b>Guide & Settings</b> tab and paste your Google Sheet URL.
               </p>
             </div>
           </div>
         )}
-
-        {/* Navigation Bar */}
-        <div className="flex bg-slate-900 border border-slate-800 rounded-2xl p-1 mb-4 shadow-inner">
-          <button
-            onClick={() => setActiveTab('log')}
-            className={`flex-1 flex items-center justify-center space-x-1.5 py-2.5 rounded-xl font-medium text-xs transition-all ${
-              activeTab === 'log'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Calendar className="w-4 h-4" />
-            <span>Daily Log</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`flex-1 flex items-center justify-center space-x-1.5 py-2.5 rounded-xl font-medium text-xs transition-all ${
-              activeTab === 'history'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <History className="w-4 h-4" />
-            <span>Timeline</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('docs')}
-            className={`flex-1 flex items-center justify-center space-x-1.5 py-2.5 rounded-xl font-medium text-xs transition-all ${
-              activeTab === 'docs'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <BookOpen className="w-4 h-4" />
-            <span>Guide</span>
-          </button>
-        </div>
 
         {/* Tab 1: Daily Log Entry */}
         {activeTab === 'log' && (
@@ -326,9 +289,52 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 3: Docs / Conventions View */}
-        {activeTab === 'docs' && <DocsView />}
+        {/* Tab 3: Docs / Guide & Settings */}
+        {activeTab === 'docs' && (
+          <DocsView config={config} onSaveConfig={handleSaveConfig} />
+        )}
       </main>
+
+      {/* Mobile Native-Style Bottom Navigation Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-4 py-2 shadow-2xl">
+        <div className="max-w-xl mx-auto flex items-center justify-around">
+          <button
+            onClick={() => setActiveTab('log')}
+            className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
+              activeTab === 'log'
+                ? 'text-indigo-400 font-semibold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Calendar className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px]">Daily Log</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
+              activeTab === 'history'
+                ? 'text-indigo-400 font-semibold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <History className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px]">Timeline ({logs.filter(l => l.activities?.length || l.description).length})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('docs')}
+            className={`flex flex-col items-center py-1 px-3 rounded-xl transition-all ${
+              activeTab === 'docs'
+                ? 'text-indigo-400 font-semibold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <BookOpen className="w-5 h-5 mb-0.5" />
+            <span className="text-[10px]">Guide & Settings</span>
+          </button>
+        </div>
+      </nav>
 
       {/* Reusable Error Modal (Unified Error Pop-up) */}
       {errorModal && (
@@ -344,7 +350,7 @@ export default function App() {
 
       {/* Floating Toast Notification */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom duration-200">
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom duration-200">
           <div
             className={`flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs font-medium shadow-2xl border ${
               toast.type === 'error'
