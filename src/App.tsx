@@ -68,6 +68,13 @@ export default function App() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const handleLoginClick = () => {
+    requestGoogleLogin(HARDCODED_CLIENT_ID, (token) => {
+      setAccessToken(token);
+      showToast('Authenticated with Google!');
+    });
+  };
+
   // Save config changes
   const handleSaveConfig = (newConfig: AppConfig) => {
     const cleanId = extractSpreadsheetId(newConfig.spreadsheetId);
@@ -78,7 +85,7 @@ export default function App() {
     showToast('Configuration updated!');
   };
 
-  // Initialize Google Auth GIS Client
+  // Initialize Google Auth GIS Client on mount
   useEffect(() => {
     initGoogleAuth(HARDCODED_CLIENT_ID, (token) => {
       setAccessToken(token);
@@ -157,7 +164,7 @@ export default function App() {
   const handleSaveLog = async () => {
     if (!accessToken) {
       showToast('Please click Google Login first!', 'error');
-      requestGoogleLogin();
+      handleLoginClick();
       return;
     }
 
@@ -225,7 +232,7 @@ export default function App() {
       {/* Clean Ultra-Minimal Top Header */}
       <Header
         isAuthenticated={!!accessToken}
-        onLogin={requestGoogleLogin}
+        onLogin={handleLoginClick}
         onLogout={() => {
           logoutGoogle();
           setAccessToken(null);
