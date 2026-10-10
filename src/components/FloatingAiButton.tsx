@@ -143,14 +143,14 @@ export const FloatingAiButton: React.FC<FloatingAiButtonProps> = ({
           onClick={startRecording}
           disabled={isProcessing}
           title="Voice Journaling with Gemini AI"
-          className="relative group bg-gradient-to-tr from-indigo-600 via-purple-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white p-3.5 rounded-full shadow-xl shadow-indigo-600/40 hover:shadow-cyan-500/50 active:scale-90 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center"
+          className="relative group bg-gradient-to-tr from-indigo-600 via-purple-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white p-3.5 rounded-full shadow-lg shadow-indigo-900/30 hover:shadow-indigo-500/20 active:scale-95 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center"
         >
           <div className="flex items-center space-x-1.5">
             <Mic className="w-5 h-5" />
-            <Sparkles className="w-4 h-4 text-amber-300 animate-bounce" />
+            <Sparkles className="w-4 h-4 text-amber-300/90" />
           </div>
-          {/* Subtle Glow Ring */}
-          <span className="absolute -inset-1 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-400 opacity-30 group-hover:opacity-75 blur transition duration-200 -z-10" />
+          {/* Light Glow Ring */}
+          <span className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500 opacity-20 group-hover:opacity-40 blur-sm transition duration-200 -z-10" />
         </button>
       )}
     </div>
