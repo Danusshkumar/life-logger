@@ -22,10 +22,12 @@ export const LogHistory: React.FC<LogHistoryProps> = ({
     return acc;
   }, {} as Record<string, string>);
 
-  // Filter entries that have activities or description
-  const validEntries = entries.filter(
-    (e) => (e.activities && e.activities.length > 0) || (e.description && e.description.trim().length > 0)
-  );
+  // Filter entries that have activities or description, sorted reverse chronologically (newest first)
+  const validEntries = entries
+    .filter(
+      (e) => (e.activities && e.activities.length > 0) || (e.description && e.description.trim().length > 0)
+    )
+    .sort((a, b) => b.date.localeCompare(a.date));
 
   const filteredEntries = validEntries.filter((entry) => {
     const matchesSearch =
