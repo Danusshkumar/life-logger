@@ -34,7 +34,7 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
           </div>
           <div>
             <h3 className="font-bold text-base text-white">{title}</h3>
-            <p className="text-[10px] text-rose-400 font-mono">App Convention / Sync Error</p>
+            <p className="text-[10px] text-rose-400 font-semibold tracking-wide uppercase">App Convention / Sync Error</p>
           </div>
         </div>
 
@@ -42,7 +42,7 @@ export const ErrorModal: React.FC<ErrorModalProps> = ({
           <p className="text-slate-200 leading-relaxed font-medium">{message}</p>
 
           {details && (
-            <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-[11px] font-mono text-slate-400 leading-normal max-h-32 overflow-y-auto">
+            <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-[11px] font-medium text-slate-400 leading-normal max-h-32 overflow-y-auto">
               {details}
             </div>
           )}

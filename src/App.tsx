@@ -289,13 +289,15 @@ export default function App() {
         {!config.spreadsheetId && (
           <div
             onClick={() => setActiveTab('docs')}
-            className="bg-amber-950/40 border border-amber-800/60 rounded-2xl p-4 mb-4 text-xs text-amber-200 flex items-start space-x-3 cursor-pointer hover:border-amber-700 transition-all shadow-lg"
+            className="bg-slate-900 border border-indigo-500/30 rounded-xl p-4 mb-4 text-xs text-slate-200 flex items-center space-x-3 cursor-pointer hover:border-indigo-500/50 hover:bg-slate-900/90 transition-all shadow-md active:scale-[0.99]"
           >
-            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-4.5 h-4.5 text-indigo-400" />
+            </div>
             <div>
-              <p className="font-semibold text-amber-300">Spreadsheet URL Required</p>
-              <p className="text-amber-200/80 mt-1">
-                Tap here to open the <b>Guide & Settings</b> tab and paste your Google Sheet URL.
+              <h3 className="text-sm font-bold text-white">Spreadsheet URL Required</h3>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">
+                Tap here to open the <span className="text-indigo-400 font-semibold underline">Guide & Settings</span> tab and paste your Google Sheet URL.
               </p>
             </div>
           </div>
@@ -333,7 +335,7 @@ export default function App() {
 
         {/* Tab 2: History Feed */}
         {activeTab === 'history' && (
-          <div className="animate-in fade-in duration-200">
+          <div>
             <LogHistory
               entries={logs}
               availableTags={tags}

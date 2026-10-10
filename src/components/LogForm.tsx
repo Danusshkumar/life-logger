@@ -58,7 +58,7 @@ export const LogForm: React.FC<LogFormProps> = ({
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <div>
               <h3 className="font-bold text-sm text-white">{formatDateDisplay(selectedDate)}</h3>
-              <p className="text-[10px] text-emerald-400 font-mono">Saved Log Entry</p>
+              <p className="text-[10px] text-emerald-400 font-semibold tracking-wide uppercase">Saved Log Entry</p>
             </div>
           </div>
 
@@ -76,7 +76,7 @@ export const LogForm: React.FC<LogFormProps> = ({
             <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block mb-1.5">
               Activities & Tags
             </span>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {selectedTags.map((tag) => (
                 <span
                   key={tag}
@@ -85,9 +85,9 @@ export const LogForm: React.FC<LogFormProps> = ({
                     borderColor: tagColorMap[tag] || '#64748B',
                     color: tagColorMap[tag] || '#CBD5E1',
                   }}
-                  className="px-2.5 py-1 rounded-xl border text-xs font-medium"
+                  className="inline-flex items-center px-3.5 py-1 rounded-full border text-xs font-bold"
                 >
-                  #{tag}
+                  <span>{tag}</span>
                 </span>
               ))}
             </div>
@@ -101,7 +101,7 @@ export const LogForm: React.FC<LogFormProps> = ({
             Journal Notes
           </span>
           {description ? (
-            <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap bg-slate-950/60 border border-slate-800/80 p-3 rounded-xl">
+            <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap bg-slate-950/60 border border-slate-800/80 p-3.5 rounded-xl font-sans">
               {description}
             </p>
           ) : (
@@ -132,7 +132,7 @@ export const LogForm: React.FC<LogFormProps> = ({
       </div>
 
       {/* Selected Tags Display inside Edit Mode Card */}
-      <div className="mb-4 bg-slate-950 border border-slate-800 rounded-xl p-3 shadow-inner">
+      <div className="mb-4 bg-slate-950 border border-slate-800 rounded-xl p-3.5 shadow-inner">
         <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
           <span className="text-xs font-bold text-slate-300 tracking-wide uppercase">
             Selected Activities & Tags
@@ -151,9 +151,9 @@ export const LogForm: React.FC<LogFormProps> = ({
                   borderColor: tagColorMap[tag] || '#64748B',
                   color: tagColorMap[tag] || '#CBD5E1',
                 }}
-                className="px-3 py-1.5 rounded-xl border text-xs font-semibold"
+                className="inline-flex items-center px-3.5 py-1.5 rounded-full border text-xs font-bold"
               >
-                #{tag}
+                <span>{tag}</span>
               </span>
             ))}
           </div>
@@ -171,7 +171,7 @@ export const LogForm: React.FC<LogFormProps> = ({
       />
 
       <div className="flex items-center justify-between mt-3 pt-2 gap-2">
-        <span className="text-xs text-slate-500 font-mono">{description.length} chars</span>
+        <span className="text-xs text-slate-500 font-medium">{description.length} chars</span>
 
         <button
           onClick={handleSaveClick}

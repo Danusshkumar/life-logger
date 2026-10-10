@@ -112,21 +112,20 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
                   borderColor: tag.color,
                   backgroundColor: isSelected ? `${tag.color}35` : '#0b0f19',
                 }}
-                className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-full border text-xs font-bold transition-all cursor-pointer ${
                   isSelected
                     ? 'text-white shadow-lg ring-2 ring-indigo-500/40'
                     : 'text-slate-300 hover:text-white'
                 }`}
               >
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
-                <span>#{tag.name}</span>
+                <span>{tag.name}</span>
                 {isSelected && <Check className="w-3.5 h-3.5 text-indigo-300 ml-0.5 shrink-0" />}
               </button>
 
               {/* Tag Description Tooltip on Hover */}
               {hoveredTag?.name === tag.name && tag.description && (
                 <div className="absolute bottom-full left-0 mb-1 z-30 bg-slate-950 border border-slate-800 text-slate-200 text-xs p-2.5 rounded-xl shadow-2xl w-52 pointer-events-none animate-in fade-in duration-100">
-                  <p className="font-bold text-white">#{tag.name}</p>
+                  <p className="font-bold text-white">{tag.name}</p>
                   <p className="text-slate-400 mt-0.5 leading-snug">{tag.description}</p>
                 </div>
               )}
@@ -174,7 +173,7 @@ export const TagSelector: React.FC<TagSelectorProps> = ({
                   setNewTagName(e.target.value);
                   setValidationError('');
                 }}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 font-mono"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-100 focus:outline-none focus:border-indigo-500 font-medium"
               />
               <p className="text-[10px] text-slate-500 mt-1">Single word, lowercase letters (a-z) and hyphens (-) only.</p>
             </div>
