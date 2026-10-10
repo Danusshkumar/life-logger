@@ -110,11 +110,11 @@ export const LogHistory: React.FC<LogHistoryProps> = ({
   };
 
   return (
-    <div className="space-y-4">
-      {/* Mandatory Sticky Filter Bar with Matched Height (h-12) & Larger Font */}
-      <div className="sticky top-20 z-30 bg-slate-950/90 backdrop-blur-md pt-1.5 pb-3.5 mb-4 border-b border-slate-800/80 shadow-2xl">
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Container 1: Non-scrolling Fixed Top Search & Filter Header */}
+      <div className="shrink-0 bg-slate-950 pt-1 pb-3 mb-2 border-b border-slate-800/80">
         <div className="flex items-center space-x-2.5">
-          {/* Expanded Height Search Input (h-12, w-5 h-5 icon, text-sm sm:text-base font-bold) */}
+          {/* Search Notes Input (h-12 height, bold font, left-aligned) */}
           <div className="relative flex-1 flex items-center">
             <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none shrink-0" />
             <input
@@ -135,7 +135,7 @@ export const LogHistory: React.FC<LogHistoryProps> = ({
             )}
           </div>
 
-          {/* Tag Filter Button with Unread Message Style Badge Count (Matched h-12) */}
+          {/* Tag Filter Button (w-12 h-12) */}
           <button
             onClick={() => setIsTagModalOpen(true)}
             className={`relative w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-sm ${
@@ -153,7 +153,7 @@ export const LogHistory: React.FC<LogHistoryProps> = ({
             )}
           </button>
 
-          {/* Date Filter Trigger Button (Matched h-12) */}
+          {/* Date Filter Button (w-12 h-12) */}
           <button
             onClick={() => setIsDateModalOpen(true)}
             className={`relative w-12 h-12 rounded-xl border flex items-center justify-center shrink-0 transition-all cursor-pointer shadow-sm ${
@@ -166,7 +166,7 @@ export const LogHistory: React.FC<LogHistoryProps> = ({
             <CalendarDays className="w-5 h-5" />
           </button>
 
-          {/* Reset All Button (Matched h-12, Visible only when active filters exist) */}
+          {/* Reset All Button (w-12 h-12, shown only when active filters exist) */}
           {hasActiveFilters && (
             <button
               onClick={resetAllFilters}
@@ -179,8 +179,8 @@ export const LogHistory: React.FC<LogHistoryProps> = ({
         </div>
       </div>
 
-      {/* Entry Cards Feed */}
-      <div className="space-y-4">
+      {/* Container 2: Independently Scrollable Log History Feed */}
+      <div className="flex-1 overflow-y-auto space-y-4 pb-12 pr-0.5">
         {filteredEntries.map((entry) => (
           <div
             key={entry.date}
@@ -188,18 +188,18 @@ export const LogHistory: React.FC<LogHistoryProps> = ({
             className="group bg-slate-900 border border-slate-800/90 hover:border-slate-700 rounded-2xl p-4 sm:p-5 shadow-lg space-y-3.5 transition-all cursor-pointer hover:shadow-indigo-950/20 active:scale-[0.99]"
           >
             {/* Header: Date Title Only */}
-            <div className="flex items-center space-x-2.5 pb-2.5 border-b border-slate-800/80">
-              <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
-                <Calendar className="w-4 h-4 text-indigo-400" />
+            <div className="flex items-center space-x-3 pb-3 border-b border-slate-800/80">
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                <Calendar className="w-4.5 h-4.5 text-indigo-400" />
               </div>
-              <span className="font-bold text-sm text-white">
+              <span className="font-bold text-sm sm:text-base text-white">
                 {formatDateLabel(entry.date)}
               </span>
             </div>
 
-            {/* Tag Badges: Bold Text Pills without '#' prefix or colored dots */}
+            {/* Tag Badges: Enlarged Bold Text Pills without '#' prefix or colored dots */}
             {entry.activities && entry.activities.length > 0 && (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2.5">
                 {entry.activities.map((tag) => (
                   <span
                     key={tag}
@@ -208,7 +208,7 @@ export const LogHistory: React.FC<LogHistoryProps> = ({
                       borderColor: tagColorMap[tag] || '#64748B',
                       color: tagColorMap[tag] || '#E2E8F0',
                     }}
-                    className="inline-flex items-center px-3.5 py-1 rounded-full border text-xs font-bold shadow-sm"
+                    className="inline-flex items-center px-4 py-1.5 rounded-full border text-xs sm:text-sm font-bold shadow-sm tracking-wide"
                   >
                     <span>{tag}</span>
                   </span>
@@ -218,7 +218,7 @@ export const LogHistory: React.FC<LogHistoryProps> = ({
 
             {/* Journal Notes / Description Box */}
             {entry.description ? (
-              <div className="bg-slate-950/60 border border-slate-800/80 p-3.5 sm:p-4 rounded-xl text-xs sm:text-sm text-slate-200 leading-relaxed font-sans whitespace-pre-wrap">
+              <div className="bg-slate-950/70 border border-slate-800/80 p-4 sm:p-5 rounded-2xl text-xs sm:text-sm text-slate-100 leading-relaxed font-sans font-medium whitespace-pre-wrap shadow-inner">
                 {entry.description}
               </div>
             ) : (

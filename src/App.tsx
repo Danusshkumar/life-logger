@@ -335,7 +335,7 @@ export default function App() {
 
         {/* Tab 2: History Feed */}
         {activeTab === 'history' && (
-          <div>
+          <div className="fixed top-20 bottom-20 left-0 right-0 max-w-xl mx-auto px-4 flex flex-col overflow-hidden z-10 pt-2">
             <LogHistory
               entries={logs}
               availableTags={tags}
