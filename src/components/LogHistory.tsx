@@ -206,7 +206,7 @@ export const LogHistory: React.FC<LogHistoryProps> = ({
                     style={{
                       backgroundColor: `${tagColorMap[tag] || '#64748B'}25`,
                       borderColor: tagColorMap[tag] || '#64748B',
-                      color: tagColorMap[tag] || '#E2E8F0',
+                      color: tagColorMap[tag] || '#818CF8',
                     }}
                     className="inline-flex items-center px-4 py-1.5 rounded-full border text-xs sm:text-sm font-bold shadow-sm tracking-wide"
                   >
@@ -312,13 +312,13 @@ export const LogHistory: React.FC<LogHistoryProps> = ({
                       style={{
                         backgroundColor: `${tagColorMap[tagName] || '#64748B'}35`,
                         borderColor: tagColorMap[tagName] || '#64748B',
-                        color: '#FFFFFF',
+                        color: tagColorMap[tagName] || '#64748B',
                       }}
                       className="flex items-center space-x-1.5 px-3.5 py-1 rounded-full border text-xs font-bold cursor-pointer active:scale-95 transition-all shadow-sm ring-2 ring-indigo-500/40"
                       title="Click to deselect tag"
                     >
                       <span>{tagName}</span>
-                      <X className="w-3.5 h-3.5 text-slate-300 hover:text-white ml-0.5 shrink-0" />
+                      <X className="w-3.5 h-3.5 ml-0.5 shrink-0" style={{ color: tagColorMap[tagName] }} />
                     </button>
                   ))}
                 </div>
@@ -344,15 +344,16 @@ export const LogHistory: React.FC<LogHistoryProps> = ({
                       style={{
                         borderColor: tag.color,
                         backgroundColor: isSelected ? `${tag.color}35` : '#0b0f19',
+                        color: tag.color,
                       }}
                       className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-full border text-xs font-bold transition-all cursor-pointer ${
                         isSelected
-                          ? 'text-white shadow-md ring-2 ring-indigo-500/40'
-                          : 'text-slate-300 hover:text-white'
+                          ? 'shadow-md ring-2 ring-indigo-500/40 opacity-100'
+                          : 'opacity-80 hover:opacity-100'
                       }`}
                     >
                       <span>{tag.name}</span>
-                      {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0 ml-0.5" />}
+                      {isSelected && <Check className="w-3.5 h-3.5 shrink-0 ml-0.5" style={{ color: tag.color }} />}
                     </button>
                   );
                 })}

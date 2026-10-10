@@ -6,13 +6,23 @@ import { extractSpreadsheetId } from '../utils/urlParser';
 interface DocsViewProps {
   config?: AppConfig;
   geminiApiKey?: string;
+  selectedYear?: string;
+  onYearChange?: (year: string) => void;
   onSaveConfig?: (newConfig: AppConfig, apiKey?: string) => void;
 }
 
-export const DocsView: React.FC<DocsViewProps> = ({ config, geminiApiKey = '', onSaveConfig }) => {
+export const DocsView: React.FC<DocsViewProps> = ({
+  config,
+  geminiApiKey = '',
+  selectedYear = '2026',
+  onYearChange,
+  onSaveConfig,
+}) => {
   const [urlInput, setUrlInput] = useState<string>(config?.spreadsheetId || '');
   const [keyInput, setKeyInput] = useState<string>(geminiApiKey);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  const AVAILABLE_YEARS = ['2024', '2025', '2026', '2027', '2028', '2029', '2030'];
 
   const handleSave = () => {
     if (!config || !onSaveConfig) return;
@@ -38,7 +48,7 @@ export const DocsView: React.FC<DocsViewProps> = ({ config, geminiApiKey = '', o
           </div>
           <div>
             <h2 className="text-sm font-bold text-white">App Guide & Settings</h2>
-            <p className="text-xs text-slate-400 font-medium">Configure your Google Sheet & Gemini AI API Key</p>
+            <p className="text-xs text-slate-400 font-medium">Configure your Google Sheet, Active Year & Gemini AI API Key</p>
           </div>
         </div>
         <p className="text-slate-300 leading-relaxed text-xs mt-2.5 pt-2.5 border-t border-slate-800">
@@ -69,6 +79,28 @@ export const DocsView: React.FC<DocsViewProps> = ({ config, geminiApiKey = '', o
               Paste your full Google Sheet URL from your browser address bar. The app automatically extracts the ID!
             </p>
           </div>
+
+          {onYearChange && (
+            <div>
+              <label className="block text-slate-300 font-semibold text-xs mb-1.5">Target Log Year</label>
+              <div className="relative">
+                <select
+                  value={selectedYear}
+                  onChange={(e) => onYearChange(e.target.value)}
+                  className="w-full h-11 bg-slate-950 border border-slate-800 text-indigo-300 font-bold text-xs rounded-xl pl-3.5 pr-8 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-inner appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23818cf8%22%20stroke-width%3D%222.2%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[right_12px_center] bg-no-repeat"
+                >
+                  {AVAILABLE_YEARS.map((yr) => (
+                    <option key={yr} value={yr} className="bg-slate-900 text-slate-200">
+                      {yr}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                Switches the active year tab in your Google Sheet.
+              </p>
+            </div>
+          )}
 
           <div>
             <label className="block text-slate-300 font-semibold text-xs mb-1.5">

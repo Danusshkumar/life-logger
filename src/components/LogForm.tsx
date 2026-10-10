@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, FileText, CheckCircle2, Edit3 } from 'lucide-react';
+import { Edit3, X, FileText, Tag as TagIcon } from 'lucide-react';
 import type { Tag } from '../types';
 
 interface LogFormProps {
@@ -8,6 +8,8 @@ interface LogFormProps {
   selectedTags: string[];
   availableTags: Tag[];
   onChangeDescription: (desc: string) => void;
+  onToggleTag: (tagName: string) => void;
+  onOpenTagModal?: () => void;
   onSave: () => Promise<void>;
   isSaving: boolean;
   hasExistingData: boolean;
@@ -19,6 +21,8 @@ export const LogForm: React.FC<LogFormProps> = ({
   selectedTags,
   availableTags,
   onChangeDescription,
+  onToggleTag,
+  onOpenTagModal,
   onSave,
   isSaving,
   hasExistingData,
@@ -39,155 +43,134 @@ export const LogForm: React.FC<LogFormProps> = ({
     setIsEditing(false);
   };
 
-  const formatDateDisplay = (dateStr: string) => {
-    const parts = dateStr.split('-');
-    const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-    return d.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
-
   if (hasExistingData && !isEditing) {
     return (
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl mb-4 space-y-4 animate-in fade-in duration-150">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl mb-4 space-y-3.5 animate-in fade-in duration-150">
         <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
-          <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-            <div>
-              <h3 className="font-bold text-sm text-white">{formatDateDisplay(selectedDate)}</h3>
-              <p className="text-[10px] text-emerald-400 font-semibold tracking-wide uppercase">Saved Log Entry</p>
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+              <FileText className="w-4 h-4 text-indigo-400" />
             </div>
+            <h3 className="font-bold text-sm text-slate-100">Journal Log</h3>
           </div>
 
           <button
             onClick={() => setIsEditing(true)}
-            className="flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-300 font-medium text-xs rounded-xl transition-all active:scale-95 cursor-pointer"
+            title="Edit Log"
+            className="w-8 h-8 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/40 border border-indigo-500/40 text-indigo-300 flex items-center justify-center transition-all active:scale-95 cursor-pointer shadow-sm"
           >
-            <Edit3 className="w-3.5 h-3.5" />
-            <span>Edit Log</span>
+            <Edit3 className="w-4 h-4" />
           </button>
         </div>
 
-        {selectedTags.length > 0 ? (
-          <div>
-            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block mb-1.5">
-              Activities & Tags
-            </span>
-            <div className="flex flex-wrap gap-2">
-              {selectedTags.map((tag) => (
-                <span
-                  key={tag}
-                  style={{
-                    backgroundColor: `${tagColorMap[tag] || '#64748B'}25`,
-                    borderColor: tagColorMap[tag] || '#64748B',
-                    color: tagColorMap[tag] || '#CBD5E1',
-                  }}
-                  className="inline-flex items-center px-3.5 py-1 rounded-full border text-xs font-bold"
-                >
-                  <span>{tag}</span>
-                </span>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <p className="text-xs text-slate-500 italic">No tags selected for this day.</p>
-        )}
-
-        <div>
-          <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block mb-1.5">
-            Journal Notes
-          </span>
-          {description ? (
-            <p className="text-xs text-slate-200 leading-relaxed whitespace-pre-wrap bg-slate-950/60 border border-slate-800/80 p-3.5 rounded-xl font-sans">
-              {description}
-            </p>
-          ) : (
-            <p className="text-xs text-slate-500 italic">No journal description recorded.</p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-4 sm:p-5 shadow-xl mb-5 animate-in fade-in duration-150">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2.5">
-          <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
-            <FileText className="w-4.5 h-4.5 text-indigo-400" />
-          </div>
-          <h3 className="font-bold text-sm text-slate-100">Daily Journal / Notes</h3>
-        </div>
-        {hasExistingData && (
-          <button
-            onClick={() => setIsEditing(false)}
-            className="text-xs font-semibold text-slate-400 hover:text-white underline transition-colors"
-          >
-            Cancel Editing
-          </button>
-        )}
-      </div>
-
-      {/* Selected Tags Display inside Edit Mode Card */}
-      <div className="mb-4 bg-slate-950 border border-slate-800 rounded-xl p-3.5 shadow-inner">
-        <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
-          <span className="text-xs font-bold text-slate-300 tracking-wide uppercase">
-            Selected Activities & Tags
-          </span>
-          <span className="text-[11px] font-medium text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded-full whitespace-nowrap">
-            {selectedTags.length} tag{selectedTags.length === 1 ? '' : 's'} selected
-          </span>
-        </div>
-        {selectedTags.length > 0 ? (
+        {selectedTags.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {selectedTags.map((tag) => (
               <span
                 key={tag}
                 style={{
-                  backgroundColor: `${tagColorMap[tag] || '#64748B'}30`,
+                  backgroundColor: `${tagColorMap[tag] || '#64748B'}25`,
                   borderColor: tagColorMap[tag] || '#64748B',
                   color: tagColorMap[tag] || '#CBD5E1',
                 }}
-                className="inline-flex items-center px-3.5 py-1.5 rounded-full border text-xs font-bold"
+                className="inline-flex items-center px-3.5 py-1.5 rounded-full border text-xs sm:text-sm font-bold"
               >
                 <span>{tag}</span>
               </span>
             ))}
           </div>
-        ) : (
-          <p className="text-xs text-slate-400 italic">No tags selected yet (pick tags above)</p>
+        )}
+
+        {description && (
+          <p className="text-xs sm:text-sm text-slate-100 leading-relaxed whitespace-pre-wrap bg-slate-950/70 border border-slate-800/80 p-4 rounded-2xl font-sans font-medium">
+            {description}
+          </p>
         )}
       </div>
+    );
+  }
+
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl mb-5 animate-in fade-in duration-150">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2.5">
+          <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+            <FileText className="w-4 h-4 text-indigo-400" />
+          </div>
+          <h3 className="font-bold text-sm text-slate-100">Daily Journal / Notes</h3>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          {onOpenTagModal && (
+            <button
+              onClick={onOpenTagModal}
+              title="Select Activities & Tags"
+              className="relative w-8 h-8 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 flex items-center justify-center transition-all cursor-pointer active:scale-95 shadow-sm"
+            >
+              <TagIcon className="w-4 h-4 text-indigo-400" />
+              {selectedTags.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-indigo-600 text-white text-[10px] font-bold flex items-center justify-center border border-slate-900">
+                  {selectedTags.length}
+                </span>
+              )}
+            </button>
+          )}
+
+          {hasExistingData && (
+            <button
+              onClick={() => setIsEditing(false)}
+              title="Cancel Editing"
+              className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Interactive Selected Tags Pills directly above input */}
+      {selectedTags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {selectedTags.map((tag) => (
+            <button
+              key={tag}
+              onClick={() => onToggleTag(tag)}
+              title="Click to deselect"
+              style={{
+                backgroundColor: `${tagColorMap[tag] || '#64748B'}30`,
+                borderColor: tagColorMap[tag] || '#64748B',
+                color: tagColorMap[tag] || '#CBD5E1',
+              }}
+              className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full border text-xs sm:text-sm font-bold cursor-pointer active:scale-95 transition-all shadow-sm ring-1 ring-indigo-500/30"
+            >
+              <span>{tag}</span>
+              <X className="w-3.5 h-3.5 opacity-70 hover:opacity-100" />
+            </button>
+          ))}
+        </div>
+      )}
 
       <textarea
         rows={5}
         value={description}
         onChange={(e) => onChangeDescription(e.target.value)}
         placeholder="What did you achieve or experience today? Write your notes here..."
-        className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors resize-y leading-relaxed font-sans shadow-inner"
+        className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-xs sm:text-sm font-medium text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors resize-none leading-relaxed font-sans shadow-inner"
       />
 
-      <div className="flex items-center justify-between mt-3 pt-2 gap-2">
-        <span className="text-xs text-slate-500 font-medium">{description.length} chars</span>
-
+      <div className="flex items-center justify-end mt-4 pt-1">
         <button
           onClick={handleSaveClick}
           disabled={isSaving}
-          className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/50 text-white font-semibold text-xs px-4 py-2 rounded-lg shadow-sm active:scale-95 disabled:opacity-50 transition-all cursor-pointer shrink-0"
+          className="h-11 px-6 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/50 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md active:scale-95 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center shrink-0"
         >
           {isSaving ? (
-            <>
-              <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              <span>Saving...</span>
-            </>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <span>{hasExistingData ? 'Updating' : 'Saving'}</span>
+            </div>
           ) : (
-            <>
-              <Save className="w-3.5 h-3.5" />
-              <span>{hasExistingData ? 'Update Log' : "Save Log"}</span>
-            </>
+            <span>{hasExistingData ? 'Update' : 'Save'}</span>
           )}
         </button>
       </div>

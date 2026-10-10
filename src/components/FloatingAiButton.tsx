@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Mic, Square, Sparkles, Loader2 } from 'lucide-react';
+import { Square, Sparkles, Loader2 } from 'lucide-react';
 import type { Tag } from '../types';
 import { processAudioLogWithGemini } from '../services/geminiAi';
 
@@ -111,44 +111,32 @@ export const FloatingAiButton: React.FC<FloatingAiButtonProps> = ({
   };
 
   return (
-    <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end">
-      {/* Live Recording Badge Indicator */}
-      {isListening && (
-        <div className="mb-2 bg-rose-950/90 border border-rose-800 text-rose-200 text-xs px-3 py-1.5 rounded-xl shadow-xl flex items-center space-x-2 animate-pulse">
-          <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-          <span className="font-semibold">Recording voice note...</span>
-        </div>
-      )}
-
-      {/* AI Processing Floating Badge */}
-      {isProcessing && (
-        <div className="mb-2 bg-slate-900 border border-indigo-500/50 text-indigo-200 text-xs px-3 py-1.5 rounded-xl shadow-xl flex items-center space-x-2 animate-pulse">
-          <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
-          <span className="font-medium">Gemini AI processing...</span>
-        </div>
-      )}
-
-      {/* Main Floating Action Button */}
+    <div className="fixed bottom-24 right-5 z-50">
       {isListening ? (
         <button
           onClick={stopRecordingAndProcess}
           disabled={isProcessing}
-          className="flex items-center space-x-1.5 bg-rose-600 hover:bg-rose-500 text-white px-3.5 py-2 rounded-full shadow-lg text-xs font-bold active:scale-95 transition-all cursor-pointer animate-pulse"
+          title="Done Speaking - Stop & Process"
+          className="w-14 h-14 bg-rose-600 hover:bg-rose-500 border border-rose-400/40 text-white rounded-full shadow-2xl active:scale-95 transition-all cursor-pointer flex items-center justify-center animate-pulse"
         >
-          <Square className="w-3.5 h-3.5 fill-white" />
-          <span>Done Speaking</span>
+          <Square className="w-6 h-6 fill-white" />
+        </button>
+      ) : isProcessing ? (
+        <button
+          disabled
+          title="Gemini AI Processing..."
+          className="w-14 h-14 bg-slate-900 border border-indigo-500/50 text-indigo-300 rounded-full shadow-2xl flex items-center justify-center"
+        >
+          <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
         </button>
       ) : (
         <button
           onClick={startRecording}
           disabled={isProcessing}
           title="Voice Journaling with Gemini AI"
-          className="bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/40 text-white p-3 rounded-full shadow-lg active:scale-95 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center"
+          className="w-14 h-14 bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/40 text-white rounded-full shadow-2xl active:scale-95 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center"
         >
-          <div className="flex items-center space-x-1">
-            <Mic className="w-4 h-4" />
-            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-          </div>
+          <Sparkles className="w-6 h-6 text-white" />
         </button>
       )}
     </div>

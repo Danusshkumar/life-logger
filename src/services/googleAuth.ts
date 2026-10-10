@@ -20,7 +20,7 @@ export const initGoogleAuth = (clientId: string, onTokenReceived: (token: string
     if (google && google.accounts && google.accounts.oauth2) {
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: clientId,
-        scope: 'https://www.googleapis.com/auth/spreadsheets',
+        scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile',
         callback: (response: any) => {
           if (response.error) {
             console.error('OAuth Error:', response.error);
@@ -78,7 +78,7 @@ export const requestGoogleLogin = (clientId?: string, onTokenReceived?: (token: 
     if (google && google.accounts && google.accounts.oauth2 && clientId) {
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: clientId,
-        scope: 'https://www.googleapis.com/auth/spreadsheets',
+        scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile',
         callback: (response: any) => {
           if (response.access_token) {
             const expiresIn = response.expires_in || 3600;
@@ -133,4 +133,29 @@ export const logoutGoogle = () => {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(TOKEN_EXPIRY_KEY);
   localStorage.removeItem(AUTO_AUTH_KEY);
+  localStorage.removeItem('life_logger_user_name');
+};
+
+export interface GoogleUserProfile {
+  name?: string;
+  given_name?: string;
+  picture?: string;
+  email?: string;
+}
+
+export const fetchGoogleUserProfile = async (accessToken: string): Promise<GoogleUserProfile | null> => {
+  try {
+    const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.given_name || data.name) {
+      localStorage.setItem('life_logger_user_name', data.given_name || data.name);
+    }
+    return data;
+  } catch (err) {
+    console.error('Failed to fetch Google profile:', err);
+    return null;
+  }
 };

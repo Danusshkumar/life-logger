@@ -14,6 +14,7 @@ import {
   requestGoogleLogin,
   getStoredAccessToken,
   logoutGoogle,
+  fetchGoogleUserProfile,
 } from './services/googleAuth';
 import {
   fetchTags,
@@ -25,6 +26,7 @@ import {
 import { Calendar, History, BookOpen, AlertTriangle, ShieldCheck } from 'lucide-react';
 
 import { FloatingAiButton } from './components/FloatingAiButton';
+import { DailyQuote } from './components/DailyQuote';
 
 const HARDCODED_CLIENT_ID = '695101244362-8pt7gjspk7g10m3ep59o6mohsgk916tv.apps.googleusercontent.com';
 
@@ -66,12 +68,16 @@ export default function App() {
   const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [description, setDescription] = useState<string>('');
+  const [userName, setUserName] = useState<string>(
+    localStorage.getItem('life_logger_user_name') || ''
+  );
 
   const [tags, setTags] = useState<Tag[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [isTagModalOpen, setIsTagModalOpen] = useState(false);
 
   // Unified Error Modal State
   const [errorModal, setErrorModal] = useState<{
@@ -127,6 +133,16 @@ export default function App() {
       showToast('Authenticated with Google!');
     });
   }, []);
+
+  useEffect(() => {
+    if (accessToken) {
+      fetchGoogleUserProfile(accessToken).then((profile) => {
+        if (profile && (profile.given_name || profile.name)) {
+          setUserName(profile.given_name || profile.name || '');
+        }
+      });
+    }
+  }, [accessToken]);
 
   // Load live tags and logs when authenticated
   const loadSheetData = async () => {
@@ -308,16 +324,8 @@ export default function App() {
           <div className="animate-in fade-in duration-200">
             <DateSelector
               selectedDate={selectedDate}
+              userName={userName}
               onDateChange={setSelectedDate}
-              selectedYear={selectedYear}
-              onYearChange={handleYearChange}
-            />
-
-            <TagSelector
-              availableTags={tags}
-              selectedTags={selectedTags}
-              onToggleTag={handleToggleTag}
-              onAddCustomTag={handleAddCustomTag}
             />
 
             <LogForm
@@ -326,10 +334,36 @@ export default function App() {
               selectedTags={selectedTags}
               availableTags={tags}
               onChangeDescription={setDescription}
+              onToggleTag={handleToggleTag}
+              onOpenTagModal={() => setIsTagModalOpen(true)}
               onSave={handleSaveLog}
               isSaving={isSaving}
               hasExistingData={currentEntryHasData}
             />
+
+            <DailyQuote />
+
+            {/* Tag Selector Modal Popup when triggered from LogForm header */}
+            {isTagModalOpen && (
+              <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
+                <div className="w-full max-w-md my-auto relative">
+                  <button
+                    onClick={() => setIsTagModalOpen(false)}
+                    className="absolute -top-3 -right-3 z-10 w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs shadow-xl border border-slate-700 flex items-center justify-center cursor-pointer transition-transform active:scale-95"
+                    title="Close Tag Selector"
+                  >
+                    ✕
+                  </button>
+                  <TagSelector
+                    availableTags={tags}
+                    selectedTags={selectedTags}
+                    recentLogs={logs}
+                    onToggleTag={handleToggleTag}
+                    onAddCustomTag={handleAddCustomTag}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -349,6 +383,8 @@ export default function App() {
           <DocsView
             config={config}
             geminiApiKey={geminiApiKey}
+            selectedYear={selectedYear}
+            onYearChange={handleYearChange}
             onSaveConfig={handleSaveConfig}
           />
         )}
@@ -423,15 +459,15 @@ export default function App() {
 
       {/* Floating Toast Notification (Single-Line No Wrap Fix) */}
       {toast && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom duration-200 max-w-[90vw]">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom duration-200 max-w-[90vw]">
           <div
-            className={`flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs font-medium shadow-2xl border whitespace-nowrap ${
+            className={`flex items-center space-x-2.5 px-4 py-3 rounded-2xl text-xs sm:text-sm font-semibold shadow-2xl border backdrop-blur-md whitespace-nowrap ${
               toast.type === 'error'
-                ? 'bg-rose-950 border-rose-800 text-rose-200'
-                : 'bg-emerald-950 border-emerald-800 text-emerald-200'
+                ? 'bg-rose-950/90 border-rose-800 text-rose-200'
+                : 'bg-slate-900/95 border-indigo-500/40 text-emerald-400'
             }`}
           >
-            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <ShieldCheck className="w-4.5 h-4.5 text-emerald-400 shrink-0" />
             <span className="truncate">{toast.message}</span>
           </div>
         </div>
