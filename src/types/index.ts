@@ -15,7 +15,7 @@ export interface AppConfig {
   spreadsheetId: string;
   clientId: string;
   sheetYear: string; // e.g. "LifeLogger_2026"
-  tagMasterSheet: string; // e.g. "Tag Master"
+  tagMasterSheet: string; // e.g. "TagsMaster"
 }
 
 export interface UserProfile {
