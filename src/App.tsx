@@ -8,6 +8,7 @@ import { DocsView } from './components/DocsView';
 import { ErrorModal } from './components/ErrorModal';
 import type { AppConfig, LogEntry, Tag } from './types';
 import { extractSpreadsheetId } from './utils/urlParser';
+import { getLocalDateString } from './utils/dateUtils';
 import {
   initGoogleAuth,
   requestGoogleLogin,
@@ -18,9 +19,12 @@ import {
   fetchTags,
   fetchLogEntries,
   updateLogEntry,
+  appendTagToMaster,
   ConventionError,
 } from './services/googleSheets';
 import { Calendar, History, BookOpen, AlertTriangle, ShieldCheck } from 'lucide-react';
+
+import { FloatingAiButton } from './components/FloatingAiButton';
 
 const HARDCODED_CLIENT_ID = '695101244362-8pt7gjspk7g10m3ep59o6mohsgk916tv.apps.googleusercontent.com';
 
@@ -32,21 +36,34 @@ const getInitialSpreadsheetId = (): string => {
   return '';
 };
 
+const getInitialYear = (): string => {
+  const stored = localStorage.getItem('life_logger_sheet_year');
+  if (stored) {
+    const match = stored.match(/\d{4}/);
+    if (match) return match[0];
+  }
+  return new Date().getFullYear().toString();
+};
+
+const initialYear = getInitialYear();
+
 const DEFAULT_CONFIG: AppConfig = {
   spreadsheetId: getInitialSpreadsheetId(),
   clientId: HARDCODED_CLIENT_ID,
-  sheetYear: 'LifeLogger_2026',
-  tagMasterSheet: 'Tag Master',
+  sheetYear: `LifeLogger_${initialYear}`,
+  tagMasterSheet: 'TagsMaster',
 };
 
 export default function App() {
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
+  const [selectedYear, setSelectedYear] = useState<string>(initialYear);
+  const [geminiApiKey, setGeminiApiKey] = useState<string>(
+    localStorage.getItem('life_logger_gemini_api_key') || ''
+  );
   const [accessToken, setAccessToken] = useState<string | null>(getStoredAccessToken());
   const [activeTab, setActiveTab] = useState<'log' | 'history' | 'docs'>('log');
 
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  );
+  const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [description, setDescription] = useState<string>('');
 
@@ -76,13 +93,31 @@ export default function App() {
   };
 
   // Save config changes
-  const handleSaveConfig = (newConfig: AppConfig) => {
+  const handleSaveConfig = (newConfig: AppConfig, apiKey?: string) => {
     const cleanId = extractSpreadsheetId(newConfig.spreadsheetId);
     const updatedConfig = { ...newConfig, spreadsheetId: cleanId, clientId: HARDCODED_CLIENT_ID };
     setConfig(updatedConfig);
     localStorage.setItem('life_logger_sheet_id', cleanId);
     localStorage.setItem('life_logger_client_id', HARDCODED_CLIENT_ID);
+    if (apiKey !== undefined) {
+      setGeminiApiKey(apiKey);
+      localStorage.setItem('life_logger_gemini_api_key', apiKey);
+    }
     showToast('Configuration updated!');
+  };
+
+  const handleYearChange = (newYear: string) => {
+    setSelectedYear(newYear);
+    const newSheetYear = `LifeLogger_${newYear}`;
+    const updatedConfig = { ...config, sheetYear: newSheetYear };
+    setConfig(updatedConfig);
+    localStorage.setItem('life_logger_sheet_year', newSheetYear);
+
+    const parts = selectedDate.split('-');
+    if (parts[0] !== newYear) {
+      setSelectedDate(`${newYear}-${parts[1] || '01'}-${parts[2] || '01'}`);
+    }
+    showToast(`Switched to ${newYear} sheet!`);
   };
 
   // Initialize Google Auth GIS Client on mount
@@ -93,7 +128,7 @@ export default function App() {
     });
   }, []);
 
-  // Load tags and logs when authenticated
+  // Load live tags and logs when authenticated
   const loadSheetData = async () => {
     if (!accessToken || !config.spreadsheetId) return;
     setIsLoading(true);
@@ -151,13 +186,15 @@ export default function App() {
     );
   };
 
-  const handleAddCustomTag = (newTagName: string) => {
-    if (!tags.some((t) => t.name === newTagName)) {
-      const newTag: Tag = {
-        name: newTagName,
-        color: '#8B5CF6',
-      };
-      setTags((prev) => [...prev, newTag]);
+  const handleAddCustomTag = async (newTag: Tag) => {
+    setTags((prev) => [...prev, newTag]);
+    if (accessToken && config.spreadsheetId) {
+      try {
+        await appendTagToMaster(config.spreadsheetId, newTag, accessToken);
+        showToast(`Added #${newTag.name} to Tag Master sheet!`);
+      } catch (error) {
+        console.error('Failed to sync new tag to Tag Master:', error);
+      }
     }
   };
 
@@ -224,8 +261,12 @@ export default function App() {
     setActiveTab('log');
   };
 
-  const currentEntryHasData =
-    selectedTags.length > 0 || description.trim().length > 0;
+  const savedEntry = logs.find((l) => l.date === selectedDate);
+  const currentEntryHasData = Boolean(
+    savedEntry &&
+      (savedEntry.activities || []).length > 0 &&
+      (savedEntry.description || '').trim().length > 0
+  );
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-24 overflow-x-hidden max-w-[100vw]">
@@ -266,6 +307,8 @@ export default function App() {
             <DateSelector
               selectedDate={selectedDate}
               onDateChange={setSelectedDate}
+              selectedYear={selectedYear}
+              onYearChange={handleYearChange}
             />
 
             <TagSelector
@@ -276,7 +319,10 @@ export default function App() {
             />
 
             <LogForm
+              selectedDate={selectedDate}
               description={description}
+              selectedTags={selectedTags}
+              availableTags={tags}
               onChangeDescription={setDescription}
               onSave={handleSaveLog}
               isSaving={isSaving}
@@ -298,9 +344,27 @@ export default function App() {
 
         {/* Tab 3: Docs / Guide & Settings */}
         {activeTab === 'docs' && (
-          <DocsView config={config} onSaveConfig={handleSaveConfig} />
+          <DocsView
+            config={config}
+            geminiApiKey={geminiApiKey}
+            onSaveConfig={handleSaveConfig}
+          />
         )}
       </main>
+
+      {/* Floating AI Voice Log Assistant Button (Daily Log tab only) */}
+      {activeTab === 'log' && (
+        <FloatingAiButton
+          availableTags={tags}
+          accessToken={accessToken}
+          geminiApiKey={geminiApiKey}
+          onPrefillLog={(aiTags, aiDescription) => {
+            setSelectedTags(aiTags);
+            setDescription(aiDescription);
+          }}
+          showToast={showToast}
+        />
+      )}
 
       {/* Perfectly Symmetrical Equal-Grid Bottom Navigation Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800/80 px-2 py-2 shadow-2xl">
@@ -355,18 +419,18 @@ export default function App() {
         />
       )}
 
-      {/* Floating Toast Notification */}
+      {/* Floating Toast Notification (Single-Line No Wrap Fix) */}
       {toast && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom duration-200">
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom duration-200 max-w-[90vw]">
           <div
-            className={`flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs font-medium shadow-2xl border ${
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-2xl text-xs font-medium shadow-2xl border whitespace-nowrap ${
               toast.type === 'error'
                 ? 'bg-rose-950 border-rose-800 text-rose-200'
                 : 'bg-emerald-950 border-emerald-800 text-emerald-200'
             }`}
           >
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>{toast.message}</span>
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span className="truncate">{toast.message}</span>
           </div>
         </div>
       )}
