@@ -16,7 +16,7 @@ const LifeLoggerLogo: React.FC = () => (
     viewBox="0 0 52 52"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    className="shrink-0 shadow-xl shadow-indigo-500/40 rounded-xl"
+    className="shrink-0 rounded-xl"
   >
     <defs>
       {/* Deep Space Badge Background */}
@@ -118,27 +118,27 @@ export const Header: React.FC<HeaderProps> = ({
   isSyncing,
 }) => {
   return (
-    <header className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 text-white px-4 py-3 shadow-lg">
-      <div className="max-w-xl mx-auto flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 z-40 h-20 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 text-white px-4 shadow-lg flex items-center">
+      <div className="max-w-xl mx-auto w-full flex items-center justify-between">
         {/* App Title & Subtitle */}
         <div className="flex items-center space-x-2.5">
           <LifeLoggerLogo />
           <div>
-            <h1 className="font-bold text-base tracking-tight bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">
+            <h1 className="font-bold text-base tracking-tight text-white">
               Life Logger
             </h1>
-            <p className="text-[10px] text-slate-400 -mt-0.5 font-medium">Google Sheets Synced PWA</p>
+            <p className="text-[11px] text-slate-400 font-medium -mt-0.5">Sheets Synced PWA</p>
           </div>
         </div>
 
-        {/* Top Right Action Buttons (Ultra Clean) */}
+        {/* Top Right Action Buttons (Sleek Minimal Icon Buttons) */}
         <div className="flex items-center space-x-2">
           {isAuthenticated && (
             <button
               onClick={onRefresh}
               disabled={isSyncing}
               title="Refresh sheet data"
-              className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+              className="p-2.5 text-slate-400 hover:text-white bg-slate-950 border border-slate-800 rounded-xl transition-all active:scale-95 cursor-pointer shadow-sm flex items-center justify-center"
             >
               <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin text-indigo-400' : ''}`} />
             </button>
@@ -147,18 +147,18 @@ export const Header: React.FC<HeaderProps> = ({
           {isAuthenticated ? (
             <button
               onClick={onLogout}
-              className="flex items-center space-x-1.5 bg-slate-800 hover:bg-rose-950/80 hover:text-rose-400 border border-slate-700 hover:border-rose-800 text-xs px-3 py-1.5 rounded-xl transition-all"
+              title="Sign Out"
+              className="p-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-xl transition-all active:scale-95 cursor-pointer shadow-sm flex items-center justify-center"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Sign Out</span>
+              <LogOut className="w-4 h-4 text-rose-400" />
             </button>
           ) : (
             <button
               onClick={onLogin}
-              className="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs px-3.5 py-1.5 rounded-xl shadow-md shadow-indigo-600/30 active:scale-95 transition-all"
+              title="Google Login"
+              className="p-2.5 bg-indigo-600/90 hover:bg-indigo-600 border border-indigo-500/50 text-white rounded-xl transition-all shadow-sm active:scale-95 cursor-pointer flex items-center justify-center"
             >
-              <LogIn className="w-3.5 h-3.5" />
-              <span>Google Login</span>
+              <LogIn className="w-4 h-4" />
             </button>
           )}
         </div>

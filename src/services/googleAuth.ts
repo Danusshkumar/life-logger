@@ -10,6 +10,8 @@ export interface OAuthToken {
 
 let tokenClient: any = null;
 
+const AUTO_AUTH_KEY = 'life_logger_auto_auth';
+
 export const initGoogleAuth = (clientId: string, onTokenReceived: (token: string) => void) => {
   if (typeof window === 'undefined') return;
 
@@ -29,10 +31,24 @@ export const initGoogleAuth = (clientId: string, onTokenReceived: (token: string
             const expiryTime = Date.now() + expiresIn * 1000;
             localStorage.setItem(TOKEN_KEY, response.access_token);
             localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
+            localStorage.setItem(AUTO_AUTH_KEY, 'true');
             onTokenReceived(response.access_token);
           }
         },
       });
+
+      // Check if auto-reconnect should run or if token is expired
+      const autoAuth = localStorage.getItem(AUTO_AUTH_KEY);
+      const currentToken = getStoredAccessToken();
+      if (!currentToken && autoAuth === 'true') {
+        // Attempt silent background token refresh without showing consent popup
+        try {
+          tokenClient.requestAccessToken({ prompt: '' });
+        } catch (e) {
+          console.log('Silent token refresh failed, user consent required');
+        }
+      }
+
       return true;
     }
     return false;
@@ -69,6 +85,7 @@ export const requestGoogleLogin = (clientId?: string, onTokenReceived?: (token: 
             const expiryTime = Date.now() + expiresIn * 1000;
             localStorage.setItem(TOKEN_KEY, response.access_token);
             localStorage.setItem(TOKEN_EXPIRY_KEY, expiryTime.toString());
+            localStorage.setItem(AUTO_AUTH_KEY, 'true');
             if (onTokenReceived) onTokenReceived(response.access_token);
           }
         },
@@ -92,6 +109,14 @@ export const getStoredAccessToken = (): string | null => {
   if (Date.now() > parseInt(expiry, 10) - 60000) {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(TOKEN_EXPIRY_KEY);
+    // If auto-auth is active, attempt silent refresh if tokenClient is ready
+    if (tokenClient && localStorage.getItem(AUTO_AUTH_KEY) === 'true') {
+      try {
+        tokenClient.requestAccessToken({ prompt: '' });
+      } catch (e) {
+        // silent fail
+      }
+    }
     return null;
   }
 
@@ -107,4 +132,5 @@ export const logoutGoogle = () => {
   }
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(TOKEN_EXPIRY_KEY);
+  localStorage.removeItem(AUTO_AUTH_KEY);
 };

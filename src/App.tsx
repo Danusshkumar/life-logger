@@ -269,7 +269,7 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-24 overflow-x-hidden max-w-[100vw]">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans pb-32 overflow-x-hidden max-w-[100vw]">
       {/* Clean Ultra-Minimal Top Header */}
       <Header
         isAuthenticated={!!accessToken}
@@ -284,7 +284,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-xl w-full mx-auto p-4">
+      <main className="flex-1 max-w-xl w-full mx-auto pt-24 p-4">
         {/* Banner if Google Spreadsheet URL missing */}
         {!config.spreadsheetId && (
           <div
@@ -366,43 +366,43 @@ export default function App() {
         />
       )}
 
-      {/* Perfectly Symmetrical Equal-Grid Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur-md border-t border-slate-800/80 px-2 py-2 shadow-2xl">
-        <div className="grid grid-cols-3 max-w-md mx-auto w-full items-center text-center">
+      {/* Native Mobile Rigid Bottom Navigation Bar (Matched h-20 height with Header) */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 h-20 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 px-3 shadow-2xl flex items-center">
+        <div className="grid grid-cols-3 max-w-md mx-auto w-full items-center text-center gap-2 h-full py-2">
           <button
             onClick={() => setActiveTab('log')}
-            className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all ${
+            className={`flex flex-col items-center justify-center py-2 rounded-2xl transition-all cursor-pointer ${
               activeTab === 'log'
-                ? 'text-indigo-400 font-semibold'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-bold shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
             }`}
           >
-            <Calendar className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px] tracking-tight">Daily Log</span>
+            <Calendar className={`w-5 h-5 mb-1 ${activeTab === 'log' ? 'text-indigo-400' : ''}`} />
+            <span className="text-xs font-semibold tracking-tight">Daily Log</span>
           </button>
 
           <button
             onClick={() => setActiveTab('history')}
-            className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all ${
+            className={`flex flex-col items-center justify-center py-2 rounded-2xl transition-all cursor-pointer ${
               activeTab === 'history'
-                ? 'text-indigo-400 font-semibold'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-bold shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
             }`}
           >
-            <History className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px] tracking-tight">Timeline</span>
+            <History className={`w-5 h-5 mb-1 ${activeTab === 'history' ? 'text-indigo-400' : ''}`} />
+            <span className="text-xs font-semibold tracking-tight">Timeline</span>
           </button>
 
           <button
             onClick={() => setActiveTab('docs')}
-            className={`flex flex-col items-center justify-center py-1 rounded-xl transition-all ${
+            className={`flex flex-col items-center justify-center py-2 rounded-2xl transition-all cursor-pointer ${
               activeTab === 'docs'
-                ? 'text-indigo-400 font-semibold'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-bold shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
             }`}
           >
-            <BookOpen className="w-5 h-5 mb-0.5" />
-            <span className="text-[10px] tracking-tight">Guide</span>
+            <BookOpen className={`w-5 h-5 mb-1 ${activeTab === 'docs' ? 'text-indigo-400' : ''}`} />
+            <span className="text-xs font-semibold tracking-tight">Guide</span>
           </button>
         </div>
       </nav>

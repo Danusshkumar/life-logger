@@ -114,17 +114,17 @@ export const FloatingAiButton: React.FC<FloatingAiButtonProps> = ({
     <div className="fixed bottom-20 right-4 z-40 flex flex-col items-end">
       {/* Live Recording Badge Indicator */}
       {isListening && (
-        <div className="mb-2 bg-rose-950/90 border border-rose-800 text-rose-200 text-xs px-3.5 py-2 rounded-2xl shadow-xl flex items-center space-x-2 animate-pulse">
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+        <div className="mb-2 bg-rose-950/90 border border-rose-800 text-rose-200 text-xs px-3 py-1.5 rounded-xl shadow-xl flex items-center space-x-2 animate-pulse">
+          <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
           <span className="font-semibold">Recording voice note...</span>
         </div>
       )}
 
       {/* AI Processing Floating Badge */}
       {isProcessing && (
-        <div className="mb-2 bg-gradient-to-r from-indigo-900 to-purple-900 border border-indigo-500/60 backdrop-blur-md text-indigo-200 text-xs px-3.5 py-2 rounded-2xl shadow-xl flex items-center space-x-2 animate-pulse">
-          <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-          <span className="font-medium">Gemini AI generating entry...</span>
+        <div className="mb-2 bg-slate-900 border border-indigo-500/50 text-indigo-200 text-xs px-3 py-1.5 rounded-xl shadow-xl flex items-center space-x-2 animate-pulse">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-cyan-400" />
+          <span className="font-medium">Gemini AI processing...</span>
         </div>
       )}
 
@@ -133,24 +133,22 @@ export const FloatingAiButton: React.FC<FloatingAiButtonProps> = ({
         <button
           onClick={stopRecordingAndProcess}
           disabled={isProcessing}
-          className="flex items-center space-x-2 bg-gradient-to-r from-rose-600 to-red-600 text-white px-4 py-3 rounded-full shadow-2xl shadow-rose-600/50 hover:scale-105 active:scale-95 transition-all cursor-pointer ring-4 ring-rose-500/30 animate-pulse"
+          className="flex items-center space-x-1.5 bg-rose-600 hover:bg-rose-500 text-white px-3.5 py-2 rounded-full shadow-lg text-xs font-bold active:scale-95 transition-all cursor-pointer animate-pulse"
         >
-          <Square className="w-4 h-4 fill-white" />
-          <span className="text-xs font-bold tracking-wide">Done Speaking</span>
+          <Square className="w-3.5 h-3.5 fill-white" />
+          <span>Done Speaking</span>
         </button>
       ) : (
         <button
           onClick={startRecording}
           disabled={isProcessing}
           title="Voice Journaling with Gemini AI"
-          className="relative group bg-gradient-to-tr from-indigo-600 via-purple-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 text-white p-3.5 rounded-full shadow-lg shadow-indigo-900/30 hover:shadow-indigo-500/20 active:scale-95 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center"
+          className="bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/40 text-white p-3 rounded-full shadow-lg active:scale-95 disabled:opacity-50 transition-all cursor-pointer flex items-center justify-center"
         >
-          <div className="flex items-center space-x-1.5">
-            <Mic className="w-5 h-5" />
-            <Sparkles className="w-4 h-4 text-amber-300/90" />
+          <div className="flex items-center space-x-1">
+            <Mic className="w-4 h-4" />
+            <Sparkles className="w-3.5 h-3.5 text-amber-300" />
           </div>
-          {/* Light Glow Ring */}
-          <span className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-indigo-500 to-cyan-500 opacity-20 group-hover:opacity-40 blur-sm transition duration-200 -z-10" />
         </button>
       )}
     </div>
