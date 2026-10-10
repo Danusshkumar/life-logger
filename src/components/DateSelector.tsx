@@ -1,31 +1,23 @@
 import React from 'react';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { getLocalDateString } from '../utils/dateUtils';
 
 interface DateSelectorProps {
   selectedDate: string; // YYYY-MM-DD
+  selectedYear: string; // e.g. "2026"
   onDateChange: (date: string) => void;
+  onYearChange: (year: string) => void;
 }
 
-export const DateSelector: React.FC<DateSelectorProps> = ({ selectedDate, onDateChange }) => {
-  const getTodayString = () => new Date().toISOString().split('T')[0];
-
-  const getYesterdayString = () => {
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return d.toISOString().split('T')[0];
-  };
-
-  const isToday = selectedDate === getTodayString();
-  const isYesterday = selectedDate === getYesterdayString();
-
-  const handleStepDay = (days: number) => {
-    const current = new Date(selectedDate);
-    current.setDate(current.getDate() + days);
-    onDateChange(current.toISOString().split('T')[0]);
-  };
-
+export const DateSelector: React.FC<DateSelectorProps> = ({
+  selectedDate,
+  selectedYear,
+  onDateChange,
+  onYearChange,
+}) => {
   const formatDateDisplay = (dateStr: string) => {
-    const d = new Date(dateStr + 'T00:00:00');
+    const parts = dateStr.split('-');
+    const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
     return d.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
@@ -34,69 +26,52 @@ export const DateSelector: React.FC<DateSelectorProps> = ({ selectedDate, onDate
     });
   };
 
+  const AVAILABLE_YEARS = ['2024', '2025', '2026', '2027', '2028', '2029', '2030'];
+
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-lg mb-4">
       <div className="flex items-center justify-between">
-        <button
-          onClick={() => handleStepDay(-1)}
-          className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
-          title="Previous Day"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-
-        <div className="flex flex-col items-center">
-          <div className="flex items-center space-x-2">
-            <CalendarIcon className="w-4 h-4 text-indigo-400" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => e.target.value && onDateChange(e.target.value)}
-              className="bg-transparent font-semibold text-base text-white focus:outline-none cursor-pointer"
-            />
-          </div>
-          <span className="text-xs text-slate-400 mt-0.5">{formatDateDisplay(selectedDate)}</span>
+        <div className="flex items-center space-x-2">
+          <CalendarIcon className="w-4 h-4 text-indigo-400" />
+          <span className="font-semibold text-xs text-slate-300">Target Date:</span>
         </div>
 
-        <button
-          onClick={() => handleStepDay(1)}
-          className="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
-          title="Next Day"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
+        <div className="flex items-center space-x-2">
+          {/* Year Picker Dropdown */}
+          <select
+            value={selectedYear}
+            onChange={(e) => onYearChange(e.target.value)}
+            className="bg-slate-950 border border-slate-800 text-indigo-300 font-mono font-bold text-xs rounded-xl px-2 py-1.5 focus:outline-none focus:border-indigo-500 cursor-pointer"
+          >
+            {AVAILABLE_YEARS.map((yr) => (
+              <option key={yr} value={yr} className="bg-slate-900 text-slate-200">
+                {yr} Sheet
+              </option>
+            ))}
+          </select>
+
+          {/* Date Input */}
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => e.target.value && onDateChange(e.target.value)}
+            className="bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5 font-mono text-xs text-white focus:outline-none focus:border-indigo-500 cursor-pointer"
+          />
+        </div>
       </div>
 
-      {/* Quick Access Pills */}
-      <div className="flex justify-center items-center space-x-2 mt-3 pt-3 border-t border-slate-800/80">
-        <button
-          onClick={() => onDateChange(getTodayString())}
-          className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${
-            isToday
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-              : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-          }`}
-        >
-          Today
-        </button>
-        <button
-          onClick={() => onDateChange(getYesterdayString())}
-          className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${
-            isYesterday
-              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-              : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-          }`}
-        >
-          Yesterday
-        </button>
-        {!isToday && !isYesterday && (
+      <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-800/60 text-[11px]">
+        <span className="text-slate-400 font-medium">{formatDateDisplay(selectedDate)}</span>
+        {selectedDate === getLocalDateString() ? (
+          <span className="text-indigo-400 font-semibold bg-indigo-950/60 border border-indigo-800/40 px-2 py-0.5 rounded-full text-[10px]">
+            Today
+          </span>
+        ) : (
           <button
-            onClick={() => onDateChange(getTodayString())}
-            className="flex items-center space-x-1 px-2.5 py-1 text-xs font-medium bg-slate-800 hover:bg-slate-700 text-indigo-400 rounded-lg transition-all"
-            title="Reset to Today"
+            onClick={() => onDateChange(getLocalDateString())}
+            className="text-slate-400 hover:text-white underline text-[10px]"
           >
-            <RotateCcw className="w-3 h-3" />
-            <span>Reset</span>
+            Switch to Today
           </button>
         )}
       </div>
