@@ -113,17 +113,19 @@ export const ensureYearSheetExists = async (spreadsheetId: string, sheetYear: st
   }
 };
 
-// Validate Row 1 Headers in LifeLogger_YYYY (Date, Activities, Description)
+// Validate Row 1 Headers and complete chronological date sequence in LifeLogger_YYYY
 export const validateSheetHeaders = async (spreadsheetId: string, sheetYear: string, token: string) => {
-  const range = encodeURIComponent(`'${sheetYear}'!A1:C1`);
-  const response = await fetch(`${BASE_URL}/${spreadsheetId}/values/${range}`, {
+  // Fetch Row 1 headers AND column A dates to verify complete calendar continuity
+  const range = encodeURIComponent(`'${sheetYear}'!A1:C370`);
+  const response = await fetch(`${BASE_URL}/${spreadsheetId}/values/${range}?valueRenderOption=FORMATTED_VALUE`, {
     headers: { Authorization: `Bearer ${token}` },
   });
 
   if (!response.ok) return;
 
   const data = await response.json();
-  const headers = data.values?.[0] || [];
+  const allRows: any[][] = data.values || [];
+  const headers = allRows[0] || [];
 
   const colA = String(headers[0] || '').trim();
   const colB = String(headers[1] || '').trim();
@@ -134,6 +136,44 @@ export const validateSheetHeaders = async (spreadsheetId: string, sheetYear: str
       `Sheet '${sheetYear}' violates workspace conventions!`,
       `Row 1 headers MUST be exact strings: Date | Activities | Description. Found: [${headers.join(' | ') || 'Empty'}]. Please fix Row 1 or delete sheet tab.`
     );
+  }
+
+  // Validate complete chronological date sequence from Jan 1 to Dec 31
+  const yearMatch = sheetYear.match(/\d{4}/);
+  if (yearMatch) {
+    const yr = parseInt(yearMatch[0], 10);
+    const isLeap = (yr % 4 === 0 && yr % 100 !== 0) || yr % 400 === 0;
+    const expectedDays = isLeap ? 366 : 365;
+
+    // Check if total data rows match the calendar days
+    const dateRows = allRows.slice(1); // skip header row
+    if (dateRows.length < expectedDays) {
+      throw new ConventionError(
+        `Incomplete dates in '${sheetYear}'!`,
+        `Expected ${expectedDays} calendar days for ${yr}, but found only ${dateRows.length} rows. Please verify all dates from ${yr}-01-01 to ${yr}-12-31 are present.`
+      );
+    }
+
+    const startDate = new Date(yr, 0, 1);
+    for (let i = 0; i < expectedDays; i++) {
+      const cur = new Date(startDate);
+      cur.setDate(startDate.getDate() + i);
+      const expectedY = cur.getFullYear();
+      const expectedM = String(cur.getMonth() + 1).padStart(2, '0');
+      const expectedD = String(cur.getDate()).padStart(2, '0');
+      const expectedDateStr = `${expectedY}-${expectedM}-${expectedD}`;
+
+      const actualRow = dateRows[i];
+      const actualRawDate = actualRow && actualRow[0] ? String(actualRow[0]).trim() : '';
+      const actualNormalized = normalizeDateString(actualRawDate);
+
+      if (actualNormalized !== expectedDateStr) {
+        throw new ConventionError(
+          `Date sequence error in '${sheetYear}' at Row ${i + 2}!`,
+          `Expected date '${expectedDateStr}', but found '${actualRawDate || 'Empty'}'. All rows must be in exact chronological order without missing or swapped dates.`
+        );
+      }
+    }
   }
 };
 
@@ -197,6 +237,45 @@ export const appendTagToMaster = async (spreadsheetId: string, tag: Tag, token: 
     }
   } catch (error) {
     console.error('Error appending tag to TagsMaster:', error);
+    throw error;
+  }
+};
+
+// Overwrite / Update the entire TagsMaster sheet with the updated list of tags
+export const updateAllTagsInMaster = async (spreadsheetId: string, tags: Tag[], token: string): Promise<void> => {
+  try {
+    const range = encodeURIComponent("'TagsMaster'!A1:C200");
+    // Clear existing tags
+    await fetch(`${BASE_URL}/${spreadsheetId}/values/${range}:clear`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (tags.length === 0) return;
+
+    const body = {
+      values: tags.map((t) => [t.name, t.color, t.description || '']),
+    };
+
+    const updateRange = encodeURIComponent(`'TagsMaster'!A1:C${tags.length}`);
+    const response = await fetch(`${BASE_URL}/${spreadsheetId}/values/${updateRange}?valueInputOption=USER_ENTERED`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.error?.message || 'Failed to update TagsMaster');
+    }
+  } catch (error) {
+    console.error('Error updating TagsMaster:', error);
     throw error;
   }
 };

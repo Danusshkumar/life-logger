@@ -5,10 +5,10 @@ export interface AiExtractionResult {
   description: string;
 }
 
-
 /**
- * Sends raw audio recording (Base64) + live TagsMaster context directly to Gemini 2.0 Flash API
- * Gemini 2.0 Flash natively transcribes the audio AND extracts structured tags & summary in 1 call!
+ * Sends raw audio recording (Base64) + live TagsMaster context directly to Gemini 2.0 Flash API.
+ * Gemini 2.0 Flash natively transcribes the audio, extracts matching tags, and formats
+ * a high-fidelity journal entry respecting user mood, tone, and complete event logging.
  */
 export const processAudioLogWithGemini = async (
   audioBase64: string,
@@ -25,18 +25,36 @@ export const processAudioLogWithGemini = async (
     .map((t) => `- ${t.name}: ${t.description || 'General activity'}`)
     .join('\n');
 
-  const systemInstruction = `You are an AI assistant for Life Logger, a personal daily journaling app.
-Your task is to listen to the provided audio recording of the user's spoken voice note and:
-1. Select all matching tag names from the provided TagsMaster list. ONLY select tag names that exist in the TagsMaster list! If none match, return an empty array.
-2. Transcribe and summarize the user's voice note into a clean, well-formatted, professional daily journal entry (1-4 sentences).
+  const systemInstruction = `You are an intelligent, empathetic AI journaling assistant for Life Logger, a personal daily tracking app.
+Your task is to analyze the audio recording of the user's spoken voice note and produce a structured JSON response.
+
+### 1. STRICT TAG SELECTION RULES:
+- ONLY select tag names that exist in the TagsMaster list below.
+- NEVER invent, hallucinate, or assume tags that the user did not explicitly mention or perform.
+- If an activity was not clearly done or mentioned, do NOT add that tag.
+- If no tags match, return an empty array [].
 
 TagsMaster Available Tags:
 ${tagsContext || '(No custom tags available)'}
 
-IMPORTANT: Respond ONLY with a valid raw JSON object in this exact format, with no markdown code blocks or additional text:
+### 2. COMPLETE INFORMATION FIDELITY:
+- EVERY single detail the user spoke MUST be logged. Never omit, truncate, or drop information.
+- Specifically record:
+  * Conversations & people mentioned (e.g. "Spoke with [Person] about [Topic]")
+  * Information gathered or learned (e.g. "Took information regarding [Subject]")
+  * Tasks completed, events, meetings, places visited, and queued todos
+- Structure the log into clear, readable sentences or concise bullet items if multiple distinct topics were discussed.
+
+### 3. TONE & EMOTIONAL RECEPTIVITY:
+- Detect the emotional undertone and mood of the user's voice and words (e.g., energized, contemplative, stressed, grateful, exhausted, joyful, or neutral).
+- Adapt the voice and narrative tone of the description to authentically honor that emotion.
+- If the user explicitly specifies a mood, vibe, or mode (e.g. "feeling emotional", "preparing queue", "just a quick factual log"), adapt the description to match that exact perspective while keeping all facts completely accurate.
+
+### 4. OUTPUT FORMAT:
+Respond ONLY with a valid raw JSON object matching this exact schema, with no markdown code fences and no conversational filler:
 {
   "tags": ["tag-name-1", "tag-name-2"],
-  "description": "Clean summary of the user's notes..."
+  "description": "Comprehensive, mood-attuned daily log capturing all details mentioned..."
 }`;
 
   const requestBody = {
@@ -63,7 +81,7 @@ IMPORTANT: Respond ONLY with a valid raw JSON object in this exact format, with 
   const keyToUse = apiKey?.trim() || localStorage.getItem('life_logger_gemini_api_key') || '';
 
   if (!keyToUse) {
-    throw new Error('Missing Gemini API Key. Please paste your free API Key from aistudio.google.com in the Guide & Settings tab.');
+    throw new Error('Missing Gemini API Key. Please paste your free API Key from aistudio.google.com in the Hub & Settings tab.');
   }
 
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${encodeURIComponent(keyToUse)}`;
@@ -75,8 +93,8 @@ IMPORTANT: Respond ONLY with a valid raw JSON object in this exact format, with 
   });
 
   if (!response.ok) {
-    const err = await response.json();
-    throw new Error(err.error?.message || 'Gemini AI audio processing failed.');
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error?.message || `Gemini AI audio processing failed with status ${response.status}.`);
   }
 
   const data = await response.json();

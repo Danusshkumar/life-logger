@@ -5,6 +5,8 @@ import { TagSelector } from './components/TagSelector';
 import { LogForm } from './components/LogForm';
 import { LogHistory } from './components/LogHistory';
 import { DocsView } from './components/DocsView';
+import { TagsView } from './components/TagsView';
+import { YearVisualsView } from './components/YearVisualsView';
 import { ErrorModal } from './components/ErrorModal';
 import type { AppConfig, LogEntry, Tag } from './types';
 import { extractSpreadsheetId } from './utils/urlParser';
@@ -22,6 +24,7 @@ import {
   fetchLogEntries,
   updateLogEntry,
   appendTagToMaster,
+  updateAllTagsInMaster,
   ConventionError,
 } from './services/googleSheets';
 import { Calendar, History, BookOpen, AlertTriangle } from 'lucide-react';
@@ -29,19 +32,23 @@ import { Calendar, History, BookOpen, AlertTriangle } from 'lucide-react';
 import { FloatingAiButton } from './components/FloatingAiButton';
 import { DailyQuote } from './components/DailyQuote';
 
-type TabType = 'log' | 'history' | 'docs';
+type TabType = 'log' | 'history' | 'docs' | 'tags' | 'visuals';
 
 const TAB_HASH_MAP: Record<TabType, string> = {
   log: '#/',
   history: '#/timeline',
-  docs: '#/guide',
+  docs: '#/hub',
+  tags: '#/tags',
+  visuals: '#/visuals',
 };
 
 const getTabFromHash = (): TabType => {
   const hash = window.location.hash.toLowerCase();
   if (!hash || hash === '#' || hash === '#/') return 'log';
-  if (hash === '#/timeline' || hash.includes('timeline') || hash.includes('history')) return 'history';
-  if (hash === '#/guide' || hash.includes('guide') || hash.includes('doc') || hash.includes('setting')) return 'docs';
+  if (hash.startsWith('#/timeline') || hash.includes('history')) return 'history';
+  if (hash.startsWith('#/tags') || hash.includes('tag')) return 'tags';
+  if (hash.startsWith('#/visuals') || hash.includes('visual')) return 'visuals';
+  if (hash.startsWith('#/hub') || hash.includes('guide') || hash.includes('doc') || hash.includes('setting')) return 'docs';
   return 'log';
 };
 
@@ -310,6 +317,32 @@ export default function App() {
     }
   };
 
+  const handleUpdateTag = async (oldName: string, updatedTag: Tag) => {
+    const updatedList = tags.map((t) => (t.name === oldName ? updatedTag : t));
+    setTags(updatedList);
+    if (accessToken && config.spreadsheetId) {
+      try {
+        await updateAllTagsInMaster(config.spreadsheetId, updatedList, accessToken);
+        showToast(`Updated #${updatedTag.name} in TagsMaster!`);
+      } catch (error) {
+        console.error('Failed to update tag in TagsMaster:', error);
+      }
+    }
+  };
+
+  const handleDeleteTag = async (tagName: string) => {
+    const updatedList = tags.filter((t) => t.name !== tagName);
+    setTags(updatedList);
+    if (accessToken && config.spreadsheetId) {
+      try {
+        await updateAllTagsInMaster(config.spreadsheetId, updatedList, accessToken);
+        showToast(`Deleted #${tagName} from TagsMaster!`);
+      } catch (error) {
+        console.error('Failed to delete tag from TagsMaster:', error);
+      }
+    }
+  };
+
   const handleSaveLog = async () => {
     if (!accessToken) {
       showToast('Please click Google Login first!', 'error');
@@ -459,7 +492,6 @@ export default function App() {
                     selectedTags={selectedTags}
                     recentLogs={logs}
                     onToggleTag={handleToggleTag}
-                    onAddCustomTag={handleAddCustomTag}
                   />
                 </div>
               </div>
@@ -479,15 +511,39 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 3: Docs / Guide & Settings */}
+        {/* Tab 3: App Hub & Settings (formerly Guide) */}
         {activeTab === 'docs' && (
           <DocsView
             config={config}
             geminiApiKey={geminiApiKey}
             selectedYear={selectedYear}
             userProfile={userProfile}
+            onOpenTagManager={() => navigateToTab('tags')}
+            onOpenVisuals={() => navigateToTab('visuals')}
             onYearChange={handleYearChange}
             onSaveConfig={handleSaveConfig}
+          />
+        )}
+
+        {/* Tab 4: TagsMaster Manager (Linked from Hub / Navigation) */}
+        {activeTab === 'tags' && (
+          <TagsView
+            availableTags={tags}
+            logs={logs}
+            onAddCustomTag={handleAddCustomTag}
+            onUpdateTag={handleUpdateTag}
+            onDeleteTag={handleDeleteTag}
+            onBack={() => navigateToTab('docs')}
+          />
+        )}
+
+        {/* Tab 5: Year Visuals & Analytics (Linked from Hub / Navigation) */}
+        {activeTab === 'visuals' && (
+          <YearVisualsView
+            logs={logs}
+            availableTags={tags}
+            selectedYear={selectedYear}
+            onBack={() => navigateToTab('docs')}
           />
         )}
       </main>
@@ -536,13 +592,13 @@ export default function App() {
           <button
             onClick={() => navigateToTab('docs')}
             className={`flex flex-col items-center justify-center py-2 rounded-2xl transition-all cursor-pointer ${
-              activeTab === 'docs'
+              activeTab === 'docs' || activeTab === 'tags' || activeTab === 'visuals'
                 ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-bold shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
             }`}
           >
-            <BookOpen className={`w-5 h-5 mb-1 ${activeTab === 'docs' ? 'text-indigo-400' : ''}`} />
-            <span className="text-xs font-semibold tracking-tight">Guide</span>
+            <BookOpen className={`w-5 h-5 mb-1 ${activeTab === 'docs' || activeTab === 'tags' || activeTab === 'visuals' ? 'text-indigo-400' : ''}`} />
+            <span className="text-xs font-semibold tracking-tight">Hub</span>
           </button>
         </div>
       </nav>
