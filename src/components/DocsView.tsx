@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
-import { BookOpen, CheckCircle, Table, Tag, ExternalLink, ShieldAlert, Settings, CheckCircle2 } from 'lucide-react';
+import { BookOpen, CheckCircle, Table, Tag, ExternalLink, ShieldAlert, Settings, CheckCircle2, User, Mail, ShieldCheck } from 'lucide-react';
 import type { AppConfig } from '../types';
+import type { GoogleUserProfile } from '../services/googleAuth';
 import { extractSpreadsheetId } from '../utils/urlParser';
 
 interface DocsViewProps {
   config?: AppConfig;
   geminiApiKey?: string;
   selectedYear?: string;
+  userProfile?: GoogleUserProfile | null;
   onYearChange?: (year: string) => void;
   onSaveConfig?: (newConfig: AppConfig, apiKey?: string) => void;
 }
@@ -15,14 +17,35 @@ export const DocsView: React.FC<DocsViewProps> = ({
   config,
   geminiApiKey = '',
   selectedYear = '2026',
+  userProfile,
   onYearChange,
   onSaveConfig,
 }) => {
   const [urlInput, setUrlInput] = useState<string>(config?.spreadsheetId || '');
+  const [yearInput, setYearInput] = useState<string>(selectedYear);
   const [keyInput, setKeyInput] = useState<string>(geminiApiKey);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [yearSavedSuccess, setYearSavedSuccess] = useState(false);
 
-  const AVAILABLE_YEARS = ['2024', '2025', '2026', '2027', '2028', '2029', '2030'];
+  // Sync year input if selectedYear changes from outside
+  React.useEffect(() => {
+    setYearInput(selectedYear);
+  }, [selectedYear]);
+
+  const handleSaveYear = () => {
+    if (!onYearChange) return;
+    let num = parseInt(yearInput, 10);
+    if (isNaN(num) || num < 2004) {
+      num = 2004;
+    } else if (num > 2104) {
+      num = 2104;
+    }
+    const finalYear = num.toString();
+    setYearInput(finalYear);
+    onYearChange(finalYear);
+    setYearSavedSuccess(true);
+    setTimeout(() => setYearSavedSuccess(false), 3000);
+  };
 
   const handleSave = () => {
     if (!config || !onSaveConfig) return;
@@ -56,6 +79,52 @@ export const DocsView: React.FC<DocsViewProps> = ({
         </p>
       </div>
 
+      {/* Logged In Google Account Profile Card */}
+      {userProfile && (
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 shadow-md space-y-3">
+          <div className="flex items-center space-x-3 pb-3 border-b border-slate-800">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+              <User className="w-4 h-4 text-indigo-400" />
+            </div>
+            <h3 className="font-bold text-sm text-slate-200">Connected Google Account</h3>
+          </div>
+
+          <div className="flex items-center space-x-3.5 pt-1">
+            {userProfile.picture ? (
+              <img
+                src={userProfile.picture}
+                alt={userProfile.name || 'User Profile'}
+                referrerPolicy="no-referrer"
+                className="w-12 h-12 rounded-full border-2 border-indigo-500/40 shadow-md object-cover shrink-0"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300 font-bold text-base shrink-0">
+                {(userProfile.name || 'U').charAt(0).toUpperCase()}
+              </div>
+            )}
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center space-x-2">
+                <span className="font-bold text-sm text-white truncate block">
+                  {userProfile.name || userProfile.given_name || 'Google User'}
+                </span>
+                {userProfile.email_verified && (
+                  <span title="Verified Account" className="shrink-0 text-emerald-400">
+                    <ShieldCheck className="w-4 h-4" />
+                  </span>
+                )}
+              </div>
+              {userProfile.email && (
+                <div className="flex items-center space-x-1.5 text-xs text-slate-400 mt-0.5">
+                  <Mail className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="truncate">{userProfile.email}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Interactive Settings Card */}
       {config && onSaveConfig && (
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 shadow-md space-y-4">
@@ -83,21 +152,29 @@ export const DocsView: React.FC<DocsViewProps> = ({
           {onYearChange && (
             <div>
               <label className="block text-slate-300 font-semibold text-xs mb-1.5">Target Log Year</label>
-              <div className="relative">
-                <select
-                  value={selectedYear}
-                  onChange={(e) => onYearChange(e.target.value)}
-                  className="w-full h-11 bg-slate-950 border border-slate-800 text-indigo-300 font-bold text-xs rounded-xl pl-3.5 pr-8 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-inner appearance-none bg-[url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2214%22%20height%3D%2214%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23818cf8%22%20stroke-width%3D%222.2%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[length:12px_12px] bg-[right_12px_center] bg-no-repeat"
+              <div className="flex items-center space-x-2">
+                <input
+                  type="number"
+                  min={2004}
+                  max={2104}
+                  value={yearInput}
+                  onChange={(e) => setYearInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveYear();
+                  }}
+                  placeholder="e.g. 2026"
+                  className="flex-1 h-11 bg-slate-950 border border-slate-800 text-indigo-300 font-bold text-sm rounded-xl px-3.5 focus:outline-none focus:border-indigo-500 shadow-inner"
+                />
+                <button
+                  type="button"
+                  onClick={handleSaveYear}
+                  className="h-11 px-4 bg-indigo-600 hover:bg-indigo-500 border border-indigo-500/50 text-white font-semibold text-xs rounded-xl shadow-sm active:scale-95 transition-all cursor-pointer shrink-0"
                 >
-                  {AVAILABLE_YEARS.map((yr) => (
-                    <option key={yr} value={yr} className="bg-slate-900 text-slate-200">
-                      {yr}
-                    </option>
-                  ))}
-                </select>
+                  {yearSavedSuccess ? 'Saved!' : 'Save Year'}
+                </button>
               </div>
               <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                Switches the active year tab in your Google Sheet.
+                Enter any year (2004–2104) and click &quot;Save Year&quot; to switch the active sheet tab.
               </p>
             </div>
           )}

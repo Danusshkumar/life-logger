@@ -5,12 +5,14 @@ import { getLocalDateString } from '../utils/dateUtils';
 interface DateSelectorProps {
   selectedDate: string; // YYYY-MM-DD
   userName?: string;
+  selectedYear?: string;
   onDateChange: (date: string) => void;
 }
 
 export const DateSelector: React.FC<DateSelectorProps> = ({
   selectedDate,
   userName,
+  selectedYear,
   onDateChange,
 }) => {
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -27,6 +29,17 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
 
   const isToday = selectedDate === getLocalDateString();
   const greetingName = userName && userName.trim().length > 0 ? userName.trim().split(' ')[0] : 'there';
+
+  // Clamp date picker to the active target year
+  const yearMin = selectedYear ? `${selectedYear}-01-01` : undefined;
+  const yearMax = selectedYear ? `${selectedYear}-12-31` : undefined;
+
+  const handleDatePickerChange = (value: string) => {
+    if (!value) return;
+    // Block dates outside the active year
+    if (selectedYear && !value.startsWith(selectedYear)) return;
+    onDateChange(value);
+  };
 
   return (
     <div className="mb-4 space-y-3">
@@ -79,7 +92,9 @@ export const DateSelector: React.FC<DateSelectorProps> = ({
               ref={dateInputRef}
               type="date"
               value={selectedDate}
-              onChange={(e) => e.target.value && onDateChange(e.target.value)}
+              min={yearMin}
+              max={yearMax}
+              onChange={(e) => handleDatePickerChange(e.target.value)}
               className="absolute inset-0 opacity-0 pointer-events-none w-0 h-0"
             />
           </div>

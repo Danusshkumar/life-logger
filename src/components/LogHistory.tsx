@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, Calendar, Inbox, X, Tag as TagIcon, Check, RotateCcw, CalendarDays } from 'lucide-react';
 import type { LogEntry, Tag } from '../types';
+import { getLocalDateString } from '../utils/dateUtils';
 
 interface LogHistoryProps {
   entries: LogEntry[];
   availableTags: Tag[];
+  selectedYear?: string;
   onSelectEntry: (entry: LogEntry) => void;
 }
 
 export const LogHistory: React.FC<LogHistoryProps> = ({
   entries,
   availableTags,
+  selectedYear,
   onSelectEntry,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,32 +38,91 @@ export const LogHistory: React.FC<LogHistoryProps> = ({
     );
   };
 
-  // Filter valid entries sorted newest first
-  const validEntries = entries
-    .filter(
-      (e) => (e.activities && e.activities.length > 0) || (e.description && e.description.trim().length > 0)
-    )
-    .sort((a, b) => b.date.localeCompare(a.date));
+  // Combined feed containing logged entries and unlogged/missed days up to today
+  const allDays = useMemo(() => {
+    const entryMap = new Map<string, LogEntry>();
+    entries.forEach((e) => {
+      entryMap.set(e.date, e);
+    });
+
+    const activeYr = selectedYear ? parseInt(selectedYear, 10) : new Date().getFullYear();
+    const todayStr = getLocalDateString();
+    const currentYr = new Date().getFullYear();
+
+    // Determine the end date to generate days for
+    let maxDateStr: string;
+    if (activeYr < currentYr) {
+      maxDateStr = `${activeYr}-12-31`;
+    } else if (activeYr === currentYr) {
+      maxDateStr = todayStr;
+    } else {
+      // Future year
+      maxDateStr = `${activeYr}-01-01`;
+    }
+
+    const minDateStr = `${activeYr}-01-01`;
+    const daysList: Array<{ date: string; entry: LogEntry; isMissed: boolean }> = [];
+
+    // Loop backwards from maxDate down to minDate
+    const cur = new Date(maxDateStr + 'T00:00:00');
+    const start = new Date(minDateStr + 'T00:00:00');
+
+    while (cur >= start) {
+      const y = cur.getFullYear();
+      const m = String(cur.getMonth() + 1).padStart(2, '0');
+      const d = String(cur.getDate()).padStart(2, '0');
+      const dateStr = `${y}-${m}-${d}`;
+
+      const existing = entryMap.get(dateStr);
+      const hasContent = Boolean(
+        existing &&
+          ((existing.activities && existing.activities.length > 0) ||
+            (existing.description && existing.description.trim().length > 0))
+      );
+
+      if (hasContent && existing) {
+        daysList.push({ date: dateStr, entry: existing, isMissed: false });
+      } else {
+        daysList.push({
+          date: dateStr,
+          entry: { date: dateStr, activities: [], description: '' },
+          isMissed: true,
+        });
+      }
+
+      cur.setDate(cur.getDate() - 1);
+    }
+
+    return daysList;
+  }, [entries, selectedYear]);
 
   // Filter logic:
-  // 1. Search MUST match description ONLY
+  // 1. If searching text or filtering tags, only show matching logged entries
   // 2. Date MUST be within [startDate, endDate]
-  // 3. Tag matching is OR logic (entry has ANY of the selected tags)
-  const filteredEntries = validEntries.filter((entry) => {
-    const matchesSearch =
-      !searchTerm ||
-      (entry.description && entry.description.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredDays = useMemo(() => {
+    return allDays.filter(({ date, entry, isMissed }) => {
+      const matchesStartDate = !startDate || date >= startDate;
+      const matchesEndDate = !endDate || date <= endDate;
+      if (!matchesStartDate || !matchesEndDate) return false;
 
-    const matchesStartDate = !startDate || entry.date >= startDate;
-    const matchesEndDate = !endDate || entry.date <= endDate;
-    const matchesDate = matchesStartDate && matchesEndDate;
+      // If text search is active, missed days don't match
+      if (searchTerm) {
+        if (isMissed) return false;
+        if (!entry.description || !entry.description.toLowerCase().includes(searchTerm.toLowerCase())) {
+          return false;
+        }
+      }
 
-    const matchesTags =
-      selectedTagFilters.length === 0 ||
-      selectedTagFilters.some((tag) => entry.activities && entry.activities.includes(tag));
+      // If tag filters are active, missed days don't match
+      if (selectedTagFilters.length > 0) {
+        if (isMissed) return false;
+        const hasTag = selectedTagFilters.some((t) => entry.activities && entry.activities.includes(t));
+        if (!hasTag) return false;
+      }
 
-    return matchesSearch && matchesDate && matchesTags;
-  });
+      return true;
+    });
+  }, [allDays, searchTerm, startDate, endDate, selectedTagFilters]);
 
   const formatDateLabel = (dateStr: string) => {
     const d = new Date(dateStr + 'T00:00:00');
@@ -181,53 +243,79 @@ export const LogHistory: React.FC<LogHistoryProps> = ({
 
       {/* Container 2: Independently Scrollable Log History Feed */}
       <div className="flex-1 overflow-y-auto space-y-4 pb-12 pr-0.5">
-        {filteredEntries.map((entry) => (
-          <div
-            key={entry.date}
-            onClick={() => onSelectEntry(entry)}
-            className="group bg-slate-900 border border-slate-800/90 hover:border-slate-700 rounded-2xl p-4 sm:p-5 shadow-lg space-y-3.5 transition-all cursor-pointer hover:shadow-indigo-950/20 active:scale-[0.99]"
-          >
-            {/* Header: Date Title Only */}
-            <div className="flex items-center space-x-3 pb-3 border-b border-slate-800/80">
-              <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
-                <Calendar className="w-4.5 h-4.5 text-indigo-400" />
-              </div>
-              <span className="font-bold text-sm sm:text-base text-white">
-                {formatDateLabel(entry.date)}
-              </span>
-            </div>
-
-            {/* Tag Badges: Enlarged Bold Text Pills without '#' prefix or colored dots */}
-            {entry.activities && entry.activities.length > 0 && (
-              <div className="flex flex-wrap gap-2.5">
-                {entry.activities.map((tag) => (
-                  <span
-                    key={tag}
-                    style={{
-                      backgroundColor: `${tagColorMap[tag] || '#64748B'}25`,
-                      borderColor: tagColorMap[tag] || '#64748B',
-                      color: tagColorMap[tag] || '#818CF8',
-                    }}
-                    className="inline-flex items-center px-4 py-1.5 rounded-full border text-xs sm:text-sm font-bold shadow-sm tracking-wide"
-                  >
-                    <span>{tag}</span>
+        {filteredDays.map(({ date, entry, isMissed }) => {
+          if (isMissed) {
+            return (
+              <div
+                key={date}
+                onClick={() => onSelectEntry(entry)}
+                className="group bg-slate-950/60 border border-dashed border-slate-800 hover:border-indigo-500/50 rounded-2xl p-4 sm:p-5 shadow-sm transition-all cursor-pointer hover:bg-slate-900/60 active:scale-[0.99]"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 rounded-xl bg-slate-800/60 border border-slate-700/50 flex items-center justify-center shrink-0">
+                      <Calendar className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
+                    </div>
+                    <span className="font-semibold text-sm sm:text-base text-slate-400 group-hover:text-slate-200 transition-colors">
+                      {formatDateLabel(date)}
+                    </span>
+                  </div>
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-slate-500 group-hover:text-indigo-300 group-hover:border-indigo-500/30 transition-all">
+                    No Entry
                   </span>
-                ))}
+                </div>
               </div>
-            )}
+            );
+          }
 
-            {/* Journal Notes / Description Box */}
-            {entry.description ? (
-              <div className="bg-slate-950/70 border border-slate-800/80 p-4 sm:p-5 rounded-2xl text-xs sm:text-sm text-slate-100 leading-relaxed font-sans font-medium whitespace-pre-wrap shadow-inner">
-                {entry.description}
+          return (
+            <div
+              key={entry.date}
+              onClick={() => onSelectEntry(entry)}
+              className="group bg-slate-900 border border-slate-800/90 hover:border-slate-700 rounded-2xl p-4 sm:p-5 shadow-lg space-y-3.5 transition-all cursor-pointer hover:shadow-indigo-950/20 active:scale-[0.99]"
+            >
+              {/* Header: Date Title Only */}
+              <div className="flex items-center space-x-3 pb-3 border-b border-slate-800/80">
+                <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                  <Calendar className="w-4.5 h-4.5 text-indigo-400" />
+                </div>
+                <span className="font-bold text-sm sm:text-base text-white">
+                  {formatDateLabel(entry.date)}
+                </span>
               </div>
-            ) : (
-              <p className="text-xs text-slate-500 italic p-1">No journal notes recorded for this date.</p>
-            )}
-          </div>
-        ))}
 
-        {filteredEntries.length === 0 && (
+              {/* Tag Badges: Enlarged Bold Text Pills without '#' prefix or colored dots */}
+              {entry.activities && entry.activities.length > 0 && (
+                <div className="flex flex-wrap gap-2.5">
+                  {entry.activities.map((tag) => (
+                    <span
+                      key={tag}
+                      style={{
+                        backgroundColor: `${tagColorMap[tag] || '#64748B'}25`,
+                        borderColor: tagColorMap[tag] || '#64748B',
+                        color: tagColorMap[tag] || '#818CF8',
+                      }}
+                      className="inline-flex items-center px-4 py-1.5 rounded-full border text-xs sm:text-sm font-bold shadow-sm tracking-wide"
+                    >
+                      <span>{tag}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Journal Notes / Description Box */}
+              {entry.description ? (
+                <div className="bg-slate-950/70 border border-slate-800/80 p-4 sm:p-5 rounded-2xl text-xs sm:text-sm text-slate-100 leading-relaxed font-sans font-medium whitespace-pre-wrap shadow-inner">
+                  {entry.description}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 italic p-1">No journal notes recorded for this date.</p>
+              )}
+            </div>
+          );
+        })}
+
+        {filteredDays.length === 0 && (
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-400 my-6 shadow-md">
             <Inbox className="w-9 h-9 text-slate-600 mx-auto mb-2.5" />
             <p className="text-sm font-bold text-slate-300">No matching logs found</p>

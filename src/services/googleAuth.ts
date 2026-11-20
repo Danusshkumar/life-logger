@@ -2,6 +2,7 @@
 
 const TOKEN_KEY = 'life_logger_google_token';
 const TOKEN_EXPIRY_KEY = 'life_logger_token_expiry';
+const USER_EMAIL_KEY = 'life_logger_user_email';
 
 export interface OAuthToken {
   access_token: string;
@@ -20,7 +21,7 @@ export const initGoogleAuth = (clientId: string, onTokenReceived: (token: string
     if (google && google.accounts && google.accounts.oauth2) {
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: clientId,
-        scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile',
+        scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
         callback: (response: any) => {
           if (response.error) {
             console.error('OAuth Error:', response.error);
@@ -40,10 +41,14 @@ export const initGoogleAuth = (clientId: string, onTokenReceived: (token: string
       // Check if auto-reconnect should run or if token is expired
       const autoAuth = localStorage.getItem(AUTO_AUTH_KEY);
       const currentToken = getStoredAccessToken();
+      const storedEmail = localStorage.getItem(USER_EMAIL_KEY);
+
       if (!currentToken && autoAuth === 'true') {
-        // Attempt silent background token refresh without showing consent popup
+        // Attempt silent background token refresh with email hint
         try {
-          tokenClient.requestAccessToken({ prompt: '' });
+          const reqOptions: any = { prompt: '' };
+          if (storedEmail) reqOptions.hint = storedEmail;
+          tokenClient.requestAccessToken(reqOptions);
         } catch (e) {
           console.log('Silent token refresh failed, user consent required');
         }
@@ -70,15 +75,23 @@ export const requestGoogleLogin = (clientId?: string, onTokenReceived?: (token: 
     initGoogleAuth(clientId, onTokenReceived);
   }
 
+  // If user previously authenticated, use prompt: '' with email hint to avoid showing Google popup
+  const autoAuth = localStorage.getItem(AUTO_AUTH_KEY);
+  const storedEmail = localStorage.getItem(USER_EMAIL_KEY);
+  const promptValue = autoAuth === 'true' ? '' : 'consent';
+
+  const reqOptions: any = { prompt: promptValue };
+  if (storedEmail) reqOptions.hint = storedEmail;
+
   if (tokenClient) {
-    tokenClient.requestAccessToken({ prompt: 'consent' });
+    tokenClient.requestAccessToken(reqOptions);
   } else {
     // Attempt fallback init
     const google = (window as any).google;
     if (google && google.accounts && google.accounts.oauth2 && clientId) {
       tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: clientId,
-        scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile',
+        scope: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
         callback: (response: any) => {
           if (response.access_token) {
             const expiresIn = response.expires_in || 3600;
@@ -90,11 +103,11 @@ export const requestGoogleLogin = (clientId?: string, onTokenReceived?: (token: 
           }
         },
       });
-      tokenClient.requestAccessToken({ prompt: 'consent' });
+      tokenClient.requestAccessToken(reqOptions);
     } else {
       console.warn('Google Identity Services script still loading. Retrying in 1 second...');
       setTimeout(() => {
-        if (tokenClient) tokenClient.requestAccessToken({ prompt: 'consent' });
+        if (tokenClient) tokenClient.requestAccessToken(reqOptions);
       }, 1000);
     }
   }
@@ -109,10 +122,13 @@ export const getStoredAccessToken = (): string | null => {
   if (Date.now() > parseInt(expiry, 10) - 60000) {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(TOKEN_EXPIRY_KEY);
-    // If auto-auth is active, attempt silent refresh if tokenClient is ready
+    // If auto-auth is active, attempt silent refresh with email hint
     if (tokenClient && localStorage.getItem(AUTO_AUTH_KEY) === 'true') {
       try {
-        tokenClient.requestAccessToken({ prompt: '' });
+        const storedEmail = localStorage.getItem(USER_EMAIL_KEY);
+        const reqOptions: any = { prompt: '' };
+        if (storedEmail) reqOptions.hint = storedEmail;
+        tokenClient.requestAccessToken(reqOptions);
       } catch (e) {
         // silent fail
       }
@@ -134,13 +150,17 @@ export const logoutGoogle = () => {
   localStorage.removeItem(TOKEN_EXPIRY_KEY);
   localStorage.removeItem(AUTO_AUTH_KEY);
   localStorage.removeItem('life_logger_user_name');
+  localStorage.removeItem(USER_EMAIL_KEY);
+  localStorage.removeItem('life_logger_user_profile');
 };
 
 export interface GoogleUserProfile {
   name?: string;
   given_name?: string;
+  family_name?: string;
   picture?: string;
   email?: string;
+  email_verified?: boolean;
 }
 
 export const fetchGoogleUserProfile = async (accessToken: string): Promise<GoogleUserProfile | null> => {
@@ -149,10 +169,14 @@ export const fetchGoogleUserProfile = async (accessToken: string): Promise<Googl
       headers: { Authorization: `Bearer ${accessToken}` },
     });
     if (!res.ok) return null;
-    const data = await res.json();
+    const data: GoogleUserProfile = await res.json();
     if (data.given_name || data.name) {
-      localStorage.setItem('life_logger_user_name', data.given_name || data.name);
+      localStorage.setItem('life_logger_user_name', data.given_name || data.name || '');
     }
+    if (data.email) {
+      localStorage.setItem(USER_EMAIL_KEY, data.email);
+    }
+    localStorage.setItem('life_logger_user_profile', JSON.stringify(data));
     return data;
   } catch (err) {
     console.error('Failed to fetch Google profile:', err);

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Header } from './components/Header';
 import { DateSelector } from './components/DateSelector';
 import { TagSelector } from './components/TagSelector';
@@ -16,6 +16,7 @@ import {
   logoutGoogle,
   fetchGoogleUserProfile,
 } from './services/googleAuth';
+import type { GoogleUserProfile } from './services/googleAuth';
 import {
   fetchTags,
   fetchLogEntries,
@@ -23,10 +24,26 @@ import {
   appendTagToMaster,
   ConventionError,
 } from './services/googleSheets';
-import { Calendar, History, BookOpen, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Calendar, History, BookOpen, AlertTriangle } from 'lucide-react';
 
 import { FloatingAiButton } from './components/FloatingAiButton';
 import { DailyQuote } from './components/DailyQuote';
+
+type TabType = 'log' | 'history' | 'docs';
+
+const TAB_HASH_MAP: Record<TabType, string> = {
+  log: '#/',
+  history: '#/timeline',
+  docs: '#/guide',
+};
+
+const getTabFromHash = (): TabType => {
+  const hash = window.location.hash.toLowerCase();
+  if (!hash || hash === '#' || hash === '#/') return 'log';
+  if (hash === '#/timeline' || hash.includes('timeline') || hash.includes('history')) return 'history';
+  if (hash === '#/guide' || hash.includes('guide') || hash.includes('doc') || hash.includes('setting')) return 'docs';
+  return 'log';
+};
 
 const HARDCODED_CLIENT_ID = '695101244362-8pt7gjspk7g10m3ep59o6mohsgk916tv.apps.googleusercontent.com';
 
@@ -63,7 +80,62 @@ export default function App() {
     localStorage.getItem('life_logger_gemini_api_key') || ''
   );
   const [accessToken, setAccessToken] = useState<string | null>(getStoredAccessToken());
-  const [activeTab, setActiveTab] = useState<'log' | 'history' | 'docs'>('log');
+  const [activeTab, setActiveTab] = useState<TabType>(getTabFromHash());
+
+  // Sync tab → URL hash
+  const navigateToTab = useCallback((tab: TabType) => {
+    setActiveTab(tab);
+    const targetHash = TAB_HASH_MAP[tab];
+    if (window.location.hash !== targetHash) {
+      window.location.hash = targetHash;
+    }
+  }, []);
+
+  // Listen for browser Back/Forward hash changes
+  useEffect(() => {
+    const onHashChange = () => setActiveTab(getTabFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  // Touch swipe to change day on Daily Log
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, []);
+
+  const handleSwipeDay = useCallback((direction: -1 | 1) => {
+    setSelectedDate((prev) => {
+      const parts = prev.split('-');
+      const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      d.setDate(d.getDate() + direction);
+      // Clamp within the active year
+      const yr = parseInt(selectedYear, 10);
+      const minDate = new Date(yr, 0, 1);
+      const maxDate = new Date(yr, 11, 31);
+      if (d < minDate) return prev;
+      if (d > maxDate) return prev;
+      return getLocalDateString(d);
+    });
+  }, [selectedYear]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (!touchStartRef.current) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartRef.current.x;
+    const deltaY = e.changedTouches[0].clientY - touchStartRef.current.y;
+    touchStartRef.current = null;
+    // Only count horizontal swipes > 60px that are clearly horizontal
+    if (Math.abs(deltaX) > 60 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5) {
+      if (deltaX < 0) {
+        // Swiped left → next day
+        handleSwipeDay(1);
+      } else {
+        // Swiped right → previous day
+        handleSwipeDay(-1);
+      }
+    }
+  }, [handleSwipeDay]);
 
   const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -71,6 +143,14 @@ export default function App() {
   const [userName, setUserName] = useState<string>(
     localStorage.getItem('life_logger_user_name') || ''
   );
+  const [userProfile, setUserProfile] = useState<GoogleUserProfile | null>(() => {
+    try {
+      const stored = localStorage.getItem('life_logger_user_profile');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
 
   const [tags, setTags] = useState<Tag[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -137,10 +217,15 @@ export default function App() {
   useEffect(() => {
     if (accessToken) {
       fetchGoogleUserProfile(accessToken).then((profile) => {
-        if (profile && (profile.given_name || profile.name)) {
-          setUserName(profile.given_name || profile.name || '');
+        if (profile) {
+          setUserProfile(profile);
+          if (profile.given_name || profile.name) {
+            setUserName(profile.given_name || profile.name || '');
+          }
         }
       });
+    } else {
+      setUserProfile(null);
     }
   }, [accessToken]);
 
@@ -165,6 +250,17 @@ export default function App() {
           details: error.details,
         });
       } else {
+        const errMsg = error?.message || '';
+        // If 401 Unauthorized or invalid token, trigger automatic seamless token refresh
+        if (errMsg.includes('401') || errMsg.includes('Request had invalid authentication credentials') || errMsg.includes('UNAUTHENTICATED')) {
+          console.warn('Authentication token expired or rejected by Google. Initiating auto-refresh...');
+          requestGoogleLogin(HARDCODED_CLIENT_ID, (freshToken) => {
+            setAccessToken(freshToken);
+            showToast('Re-authenticated with Google!');
+          });
+          return;
+        }
+
         setErrorModal({
           title: 'Google Sheet Sync Failed',
           message: error.message || 'Unable to read data from Google Sheet. Verify your Spreadsheet URL/ID.',
@@ -226,8 +322,7 @@ export default function App() {
         title: 'Missing Spreadsheet URL',
         message: 'Please paste your Google Sheet URL in the Guide & Settings tab before saving logs.',
       });
-      setActiveTab('docs');
-      return;
+      navigateToTab('docs');      return;
     }
 
     setIsSaving(true);
@@ -274,7 +369,7 @@ export default function App() {
 
   const handleSelectHistoryEntry = (entry: LogEntry) => {
     setSelectedDate(entry.date);
-    setActiveTab('log');
+    navigateToTab('log');
   };
 
   const savedEntry = logs.find((l) => l.date === selectedDate);
@@ -304,7 +399,7 @@ export default function App() {
         {/* Banner if Google Spreadsheet URL missing */}
         {!config.spreadsheetId && (
           <div
-            onClick={() => setActiveTab('docs')}
+            onClick={() => navigateToTab('docs')}
             className="bg-slate-900 border border-indigo-500/30 rounded-xl p-4 mb-4 text-xs text-slate-200 flex items-center space-x-3 cursor-pointer hover:border-indigo-500/50 hover:bg-slate-900/90 transition-all shadow-md active:scale-[0.99]"
           >
             <div className="w-9 h-9 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
@@ -319,12 +414,17 @@ export default function App() {
           </div>
         )}
 
-        {/* Tab 1: Daily Log Entry */}
+        {/* Tab 1: Daily Log Entry with Day Swipe Navigation */}
         {activeTab === 'log' && (
-          <div className="animate-in fade-in duration-200">
+          <div
+            className="animate-in fade-in duration-200 touch-pan-y"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             <DateSelector
               selectedDate={selectedDate}
               userName={userName}
+              selectedYear={selectedYear}
               onDateChange={setSelectedDate}
             />
 
@@ -373,6 +473,7 @@ export default function App() {
             <LogHistory
               entries={logs}
               availableTags={tags}
+              selectedYear={selectedYear}
               onSelectEntry={handleSelectHistoryEntry}
             />
           </div>
@@ -384,6 +485,7 @@ export default function App() {
             config={config}
             geminiApiKey={geminiApiKey}
             selectedYear={selectedYear}
+            userProfile={userProfile}
             onYearChange={handleYearChange}
             onSaveConfig={handleSaveConfig}
           />
@@ -408,7 +510,7 @@ export default function App() {
       <nav className="fixed bottom-0 left-0 right-0 z-40 h-20 bg-slate-900/95 backdrop-blur-lg border-t border-slate-800 px-3 shadow-2xl flex items-center">
         <div className="grid grid-cols-3 max-w-md mx-auto w-full items-center text-center gap-2 h-full py-2">
           <button
-            onClick={() => setActiveTab('log')}
+            onClick={() => navigateToTab('log')}
             className={`flex flex-col items-center justify-center py-2 rounded-2xl transition-all cursor-pointer ${
               activeTab === 'log'
                 ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-bold shadow-sm'
@@ -420,7 +522,7 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => setActiveTab('history')}
+            onClick={() => navigateToTab('history')}
             className={`flex flex-col items-center justify-center py-2 rounded-2xl transition-all cursor-pointer ${
               activeTab === 'history'
                 ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-bold shadow-sm'
@@ -432,7 +534,7 @@ export default function App() {
           </button>
 
           <button
-            onClick={() => setActiveTab('docs')}
+            onClick={() => navigateToTab('docs')}
             className={`flex flex-col items-center justify-center py-2 rounded-2xl transition-all cursor-pointer ${
               activeTab === 'docs'
                 ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-bold shadow-sm'
@@ -452,23 +554,22 @@ export default function App() {
           message={errorModal.message}
           details={errorModal.details}
           onClose={() => setErrorModal(null)}
-          onOpenDocs={() => setActiveTab('docs')}
+          onOpenDocs={() => navigateToTab('docs')}
           onRetry={loadSheetData}
         />
       )}
 
-      {/* Floating Toast Notification (Single-Line No Wrap Fix) */}
+      {/* Floating Toast Notification (Restyled to Match Slate Theme) */}
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom duration-200 max-w-[90vw]">
           <div
-            className={`flex items-center space-x-2.5 px-4 py-3 rounded-2xl text-xs sm:text-sm font-semibold shadow-2xl border backdrop-blur-md whitespace-nowrap ${
+            className={`px-4 py-2.5 rounded-full text-xs font-semibold shadow-2xl border backdrop-blur-md whitespace-nowrap transition-all ${
               toast.type === 'error'
                 ? 'bg-rose-950/90 border-rose-800 text-rose-200'
-                : 'bg-slate-900/95 border-indigo-500/40 text-emerald-400'
+                : 'bg-slate-900/95 border-slate-800 text-slate-200 shadow-indigo-950/20'
             }`}
           >
-            <ShieldCheck className="w-4.5 h-4.5 text-emerald-400 shrink-0" />
-            <span className="truncate">{toast.message}</span>
+            <span>{toast.message}</span>
           </div>
         </div>
       )}
