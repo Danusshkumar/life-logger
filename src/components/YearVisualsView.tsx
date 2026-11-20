@@ -264,7 +264,7 @@ export const YearVisualsView: React.FC<YearVisualsViewProps> = ({
                       style={{ color: activeTagData.color }}
                       className="text-base sm:text-lg font-black truncate max-w-[140px]"
                     >
-                      #{activeTagData.name}
+                      {activeTagData.name}
                     </span>
                     <span className="text-xl sm:text-2xl font-black text-white leading-tight">
                       {activeTagData.percentOfTags}%
@@ -315,8 +315,8 @@ export const YearVisualsView: React.FC<YearVisualsViewProps> = ({
                         style={{ backgroundColor: t.color }}
                         className="w-2 h-2 rounded-full inline-block shrink-0"
                       />
-                      <span>#{t.name}</span>
-                      <span className="text-[11px] font-mono opacity-80">
+                      <span>{t.name}</span>
+                      <span className="text-[11px] opacity-80">
                         {t.percentOfTags}%
                       </span>
                     </button>
@@ -347,51 +347,34 @@ export const YearVisualsView: React.FC<YearVisualsViewProps> = ({
         </div>
 
         {stats.sorted.length > 0 ? (
-          <div className="space-y-3 pt-1">
+          <div className="space-y-2 pt-1">
             {stats.sorted.map((tag) => {
-              const barWidth = Math.max(6, Math.round((tag.count / stats.maxCount) * 100));
               const isSelected = selectedTag === tag.name;
 
               return (
                 <div
                   key={tag.name}
                   onClick={() => setSelectedTag(isSelected ? null : tag.name)}
-                  className={`p-2.5 rounded-xl transition-all cursor-pointer ${
-                    isSelected ? 'bg-slate-800/80 ring-1 ring-indigo-500/50' : 'hover:bg-slate-800/40'
+                  className={`flex items-center justify-between px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                    isSelected ? 'bg-slate-800 ring-1 ring-indigo-500/50' : 'bg-slate-950/40 hover:bg-slate-800/50 border border-slate-800/60'
                   }`}
                 >
-                  <div className="flex items-center justify-between text-xs mb-1.5">
+                  <div className="flex items-center space-x-2.5 min-w-0 pr-3">
                     <span
-                      style={{
-                        backgroundColor: `${tag.color}25`,
-                        borderColor: tag.color,
-                        color: tag.color,
-                      }}
-                      className="px-2.5 py-0.5 rounded-full border text-xs font-bold"
-                    >
-                      #{tag.name}
-                    </span>
-
-                    <div className="flex items-center space-x-2 text-[11px]">
-                      <span className="text-slate-300 font-bold">
-                        {tag.count} {tag.count === 1 ? 'day' : 'days'}
-                      </span>
-                      <span className="text-slate-400 font-mono">
-                        ({tag.percentOfTags}% of tags · {Math.round(tag.degrees)}°)
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Rounded Progress Bar */}
-                  <div className="w-full h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800/80 p-0.5">
-                    <div
-                      style={{
-                        width: `${barWidth}%`,
-                        backgroundColor: tag.color,
-                      }}
-                      className="h-full rounded-full transition-all duration-500 shadow-sm"
+                      style={{ backgroundColor: tag.color }}
+                      className="w-2.5 h-2.5 rounded-full shrink-0"
                     />
+                    <span
+                      style={{ color: tag.color }}
+                      className="text-xs font-bold truncate whitespace-nowrap"
+                    >
+                      {tag.name}
+                    </span>
                   </div>
+
+                  <span className="text-xs font-bold text-slate-300 shrink-0">
+                    {tag.count} {tag.count === 1 ? 'occurrence' : 'occurrences'}
+                  </span>
                 </div>
               );
             })}

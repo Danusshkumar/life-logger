@@ -23,3 +23,10 @@ export interface UserProfile {
   email: string;
   picture?: string;
 }
+
+export interface VendorMapping {
+  category: string;
+  title: string;
+}
+
+export type CategoryMapperData = Record<string, VendorMapping>;

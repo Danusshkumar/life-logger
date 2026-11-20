@@ -7,6 +7,7 @@ import { LogHistory } from './components/LogHistory';
 import { DocsView } from './components/DocsView';
 import { TagsView } from './components/TagsView';
 import { YearVisualsView } from './components/YearVisualsView';
+import { CategoryMapperView } from './components/CategoryMapperView';
 import { ErrorModal } from './components/ErrorModal';
 import type { AppConfig, LogEntry, Tag } from './types';
 import { extractSpreadsheetId } from './utils/urlParser';
@@ -32,7 +33,7 @@ import { Calendar, History, BookOpen, AlertTriangle } from 'lucide-react';
 import { FloatingAiButton } from './components/FloatingAiButton';
 import { DailyQuote } from './components/DailyQuote';
 
-type TabType = 'log' | 'history' | 'docs' | 'tags' | 'visuals';
+type TabType = 'log' | 'history' | 'docs' | 'tags' | 'visuals' | 'mapper';
 
 const TAB_HASH_MAP: Record<TabType, string> = {
   log: '#/',
@@ -40,6 +41,7 @@ const TAB_HASH_MAP: Record<TabType, string> = {
   docs: '#/hub',
   tags: '#/tags',
   visuals: '#/visuals',
+  mapper: '#/mapper',
 };
 
 const getTabFromHash = (): TabType => {
@@ -48,6 +50,7 @@ const getTabFromHash = (): TabType => {
   if (hash.startsWith('#/timeline') || hash.includes('history')) return 'history';
   if (hash.startsWith('#/tags') || hash.includes('tag')) return 'tags';
   if (hash.startsWith('#/visuals') || hash.includes('visual')) return 'visuals';
+  if (hash.startsWith('#/mapper') || hash.includes('mapper')) return 'mapper';
   if (hash.startsWith('#/hub') || hash.includes('guide') || hash.includes('doc') || hash.includes('setting')) return 'docs';
   return 'log';
 };
@@ -520,6 +523,7 @@ export default function App() {
             userProfile={userProfile}
             onOpenTagManager={() => navigateToTab('tags')}
             onOpenVisuals={() => navigateToTab('visuals')}
+            onOpenMapper={() => navigateToTab('mapper')}
             onYearChange={handleYearChange}
             onSaveConfig={handleSaveConfig}
           />
@@ -544,6 +548,14 @@ export default function App() {
             availableTags={tags}
             selectedYear={selectedYear}
             onBack={() => navigateToTab('docs')}
+          />
+        )}
+
+        {/* Tab 6: Category Mapper (JSON Editor for Automate) */}
+        {activeTab === 'mapper' && (
+          <CategoryMapperView
+            onBack={() => navigateToTab('docs')}
+            showToast={showToast}
           />
         )}
       </main>
@@ -592,12 +604,12 @@ export default function App() {
           <button
             onClick={() => navigateToTab('docs')}
             className={`flex flex-col items-center justify-center py-2 rounded-2xl transition-all cursor-pointer ${
-              activeTab === 'docs' || activeTab === 'tags' || activeTab === 'visuals'
+              activeTab === 'docs' || activeTab === 'tags' || activeTab === 'visuals' || activeTab === 'mapper'
                 ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-bold shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
             }`}
           >
-            <BookOpen className={`w-5 h-5 mb-1 ${activeTab === 'docs' || activeTab === 'tags' || activeTab === 'visuals' ? 'text-indigo-400' : ''}`} />
+            <BookOpen className={`w-5 h-5 mb-1 ${activeTab === 'docs' || activeTab === 'tags' || activeTab === 'visuals' || activeTab === 'mapper' ? 'text-indigo-400' : ''}`} />
             <span className="text-xs font-semibold tracking-tight">Hub</span>
           </button>
         </div>

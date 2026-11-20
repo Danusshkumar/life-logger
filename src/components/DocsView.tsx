@@ -10,6 +10,7 @@ import {
   Tag as TagIcon,
   ChevronRight,
   Sparkles,
+  FileCode2,
 } from 'lucide-react';
 import type { AppConfig } from '../types';
 import type { GoogleUserProfile } from '../services/googleAuth';
@@ -22,6 +23,7 @@ interface DocsViewProps {
   userProfile?: GoogleUserProfile | null;
   onOpenTagManager?: () => void;
   onOpenVisuals?: () => void;
+  onOpenMapper?: () => void;
   onYearChange?: (year: string) => void;
   onSaveConfig?: (newConfig: AppConfig, apiKey?: string) => void;
 }
@@ -33,6 +35,7 @@ export const DocsView: React.FC<DocsViewProps> = ({
   userProfile,
   onOpenTagManager,
   onOpenVisuals,
+  onOpenMapper,
   onYearChange,
   onSaveConfig,
 }) => {
@@ -159,6 +162,28 @@ export const DocsView: React.FC<DocsViewProps> = ({
                   Year Visuals & Analytics
                 </h3>
                 <p className="text-[11px] text-slate-400">360° tag share circle & distribution</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-indigo-300 transition-colors" />
+          </div>
+        )}
+
+        {onOpenMapper && (
+          <div
+            onClick={onOpenMapper}
+            className="sm:col-span-2 bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-2xl p-4 shadow-md transition-all cursor-pointer flex items-center justify-between group active:scale-[0.99]"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0 text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                <FileCode2 className="w-4.5 h-4.5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-white group-hover:text-indigo-300 transition-colors">
+                  Category Mapper
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Automate notification vendor to category dictionary
+                </p>
               </div>
             </div>
             <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-indigo-300 transition-colors" />

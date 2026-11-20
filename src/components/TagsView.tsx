@@ -90,7 +90,7 @@ export const TagsView: React.FC<TagsViewProps> = ({
     if (!editingTag) {
       // Creating new
       if (availableTags.some((t) => t.name.toLowerCase() === trimmedName)) {
-        setValidationError(`Tag '#${trimmedName}' already exists.`);
+        setValidationError(`Tag "${trimmedName}" already exists.`);
         return;
       }
       onAddCustomTag?.({
@@ -104,7 +104,7 @@ export const TagsView: React.FC<TagsViewProps> = ({
         trimmedName !== editingTag.name.toLowerCase() &&
         availableTags.some((t) => t.name.toLowerCase() === trimmedName)
       ) {
-        setValidationError(`Another tag '#${trimmedName}' already exists.`);
+        setValidationError(`Another tag "${trimmedName}" already exists.`);
         return;
       }
       onUpdateTag?.(editingTag.name, {
@@ -118,7 +118,7 @@ export const TagsView: React.FC<TagsViewProps> = ({
   };
 
   const handleDelete = (tag: Tag) => {
-    if (window.confirm(`Are you sure you want to delete the tag '#${tag.name}' from TagsMaster?`)) {
+    if (window.confirm(`Are you sure you want to delete the tag "${tag.name}" from TagsMaster?`)) {
       onDeleteTag?.(tag.name);
     }
   };
@@ -190,7 +190,7 @@ export const TagsView: React.FC<TagsViewProps> = ({
                   }}
                   className="inline-flex items-center px-3 py-1 rounded-full border text-xs font-bold"
                 >
-                  #{tag.name}
+                  {tag.name}
                 </span>
 
                 <div className="flex items-center space-x-1">
