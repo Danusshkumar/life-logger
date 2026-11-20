@@ -187,19 +187,6 @@ export const CategoryMapperView: React.FC<CategoryMapperViewProps> = ({
     showToast('Created new empty mapping file.', 'success');
   };
 
-  // Close active file
-  const handleCloseFile = () => {
-    if (isDirty && !window.confirm('You have unsaved changes. Close file without saving?')) {
-      return;
-    }
-    setData({});
-    setIsFileLoaded(false);
-    setFileName('category_mapper.json');
-    setHasFileHandle(false);
-    setIsDirty(false);
-    fileHandleRef.current = null;
-  };
-
   // Save directly to device file
   const handleSaveFile = async () => {
     const jsonString = JSON.stringify(data, null, 2);
