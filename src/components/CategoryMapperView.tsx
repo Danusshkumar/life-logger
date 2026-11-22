@@ -35,24 +35,6 @@ type SortOption = 'frequency' | 'last_seen' | 'name';
 type SortDirection = 'desc' | 'asc';
 type PruneTarget = 'all' | 'unindexed' | 'indexed';
 
-const CATEGORY_COLORS: Record<string, string> = {
-  'food & dining': '#F59E0B',
-  transportation: '#38BDF8',
-  shopping: '#EC4899',
-  entertainment: '#A855F7',
-  groceries: '#10B981',
-  utilities: '#06B6D4',
-  health: '#F43F5E',
-  travel: '#6366F1',
-  bills: '#14B8A6',
-  personal: '#F97316',
-};
-
-const getCategoryColor = (categoryName: string): string => {
-  const normalized = categoryName.trim().toLowerCase();
-  return CATEGORY_COLORS[normalized] || '#818CF8';
-};
-
 const getRelativeDaysText = (dateString: string): string => {
   if (!dateString) return 'Never';
   const now = new Date();
@@ -535,6 +517,143 @@ export const CategoryMapperView: React.FC<CategoryMapperViewProps> = ({
     }
   };
 
+  // Render Vendor Card (Used consistently across Mapped, Inbox, and Prune lists)
+  const renderVendorCard = (vendor: string, mapping: VendorMapping) => {
+    return (
+      <div
+        key={vendor}
+        className="bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-4 shadow-sm space-y-3 transition-all"
+      >
+        {/* Row 1: Vendor Name + Status Pill on Left, 3 Distinct Buttons on Right */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0 flex items-center space-x-2 flex-wrap gap-y-1">
+            <span className="font-bold text-sm sm:text-base text-white truncate">
+              {vendor}
+            </span>
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                mapping.is_indexed
+                  ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300'
+                  : 'bg-slate-800 border-slate-700 text-slate-400'
+              }`}
+            >
+              {mapping.is_indexed ? 'Mapped' : 'Inbox'}
+            </span>
+            {!mapping.is_indexed && mapping.frequency >= 3 && (
+              <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full border border-indigo-500/40 bg-indigo-500/15 text-indigo-300 text-[10px] font-bold shrink-0">
+                <Sparkles className="w-2.5 h-2.5 text-indigo-400" />
+                <span>Recurring</span>
+              </span>
+            )}
+          </div>
+
+          {/* Three Action Buttons */}
+          <div className="flex items-center space-x-1.5 shrink-0">
+            {/* Button 1: Edit (if mapped) or Index (if inbox) */}
+            {mapping.is_indexed ? (
+              <button
+                type="button"
+                onClick={() => handleOpenEdit(vendor, mapping)}
+                title="Edit entry"
+                className="p-2 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 rounded-xl transition-all cursor-pointer active:scale-95 shadow-sm"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleOpenIndexFromInbox(vendor, mapping)}
+                title="Index into Cashew"
+                className="flex items-center space-x-1 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/20 transition-all cursor-pointer active:scale-95"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Index</span>
+              </button>
+            )}
+
+            {/* Button 2: Demote (if mapped) or Edit (if inbox) */}
+            {mapping.is_indexed ? (
+              <button
+                type="button"
+                onClick={() => handleDemoteToInbox(vendor)}
+                title="Demote to Inbox"
+                className="p-2 text-slate-400 hover:text-amber-300 bg-slate-800/80 hover:bg-amber-500/15 border border-slate-700/80 hover:border-amber-500/30 rounded-xl transition-all cursor-pointer active:scale-95 shadow-sm"
+              >
+                <Undo2 className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleOpenEdit(vendor, mapping)}
+                title="Edit entry details"
+                className="p-2 text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 rounded-xl transition-all cursor-pointer active:scale-95 shadow-sm"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {/* Button 3: Delete */}
+            <button
+              type="button"
+              onClick={() => handleDelete(vendor)}
+              title="Delete entry"
+              className="p-2 text-slate-400 hover:text-rose-400 bg-slate-800/80 hover:bg-rose-500/15 border border-slate-700/80 hover:border-rose-500/30 rounded-xl transition-all cursor-pointer active:scale-95 shadow-sm"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Row 2: Category and Title (Clean UI, No arbitrary colors) */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {mapping.is_indexed ? (
+            <>
+              <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-slate-800 border border-slate-700 rounded-lg shrink-0">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Cat:</span>
+                <span className="text-xs font-bold text-slate-200">{mapping.category}</span>
+              </div>
+              <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-slate-800/60 border border-slate-800 rounded-lg min-w-0">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Title:</span>
+                <span className="text-xs font-semibold text-white truncate">{mapping.title}</span>
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-slate-800/40 border border-slate-800 rounded-lg text-slate-400 text-xs">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-500" />
+              <span>Unmapped payee · Awaiting Cashew categorization</span>
+            </div>
+          )}
+        </div>
+
+        {/* Row 3: Description UI (With Description or Without Description) */}
+        {mapping.description ? (
+          <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800/80 text-xs text-slate-300">
+            <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+            <span className="line-clamp-2 leading-relaxed">{mapping.description}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/30 border border-dashed border-slate-800 text-[11px] text-slate-500">
+            <FileText className="w-3 h-3 text-slate-600 shrink-0" />
+            <span>No description added</span>
+          </div>
+        )}
+
+        {/* Row 4: Metadata Footer (Frequency + Last Seen) */}
+        <div className="flex items-center justify-between pt-2 border-t border-slate-800/70 text-[11px] text-slate-400">
+          <div className="flex items-center space-x-1.5">
+            <span className="px-2 py-0.5 rounded-md font-bold bg-slate-800 text-slate-200 border border-slate-700/60">
+              {mapping.frequency} {mapping.frequency === 1 ? 'time' : 'times'}
+            </span>
+            <span className="text-slate-500">frequency</span>
+          </div>
+          <div className="text-slate-400">
+            Last: <span className="text-slate-300 font-semibold">{mapping.last_seen || 'Never'}</span> ({getRelativeDaysText(mapping.last_seen)})
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4 sm:space-y-5 pb-28 animate-in fade-in duration-200 text-slate-100 font-sans">
       {/* Hidden File Input */}
@@ -846,84 +965,7 @@ export const CategoryMapperView: React.FC<CategoryMapperViewProps> = ({
           {/* TAB 1: MAPPED VENDORS */}
           {activeTab === 'mapped' && (
             <div className="space-y-2.5">
-              {displayedList.map(([vendor, mapping]) => {
-                const color = getCategoryColor(mapping.category);
-                return (
-                  <div
-                    key={vendor}
-                    className="bg-slate-900 border border-slate-800 hover:border-slate-700/80 rounded-2xl p-4 shadow-sm space-y-2 transition-all"
-                  >
-                    {/* Row 1: Vendor Name + Category Pill + Actions */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 space-y-0.5">
-                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                          <span className="font-bold text-sm sm:text-base text-white truncate">
-                            {vendor}
-                          </span>
-                          <span
-                            style={{
-                              backgroundColor: `${color}20`,
-                              borderColor: `${color}40`,
-                              color,
-                            }}
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full border text-xs font-semibold shrink-0"
-                          >
-                            {mapping.category}
-                          </span>
-                        </div>
-                        <p className="text-xs sm:text-sm text-slate-300 font-semibold truncate">
-                          {mapping.title}
-                        </p>
-                      </div>
-
-                      {/* Card Actions: Edit, Demote to Inbox, Delete */}
-                      <div className="flex items-center space-x-1 shrink-0 -mr-1">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEdit(vendor, mapping)}
-                          title="Edit mapping"
-                          className="p-2 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDemoteToInbox(vendor)}
-                          title="Demote to Inbox (Unmap)"
-                          className="p-2 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
-                        >
-                          <Undo2 className="w-4 h-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(vendor)}
-                          title="Delete entry"
-                          className="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Description Notes (if present) */}
-                    {mapping.description && (
-                      <p className="text-xs text-slate-400 italic bg-slate-950/40 px-3 py-1.5 rounded-lg border border-slate-800/60">
-                        {mapping.description}
-                      </p>
-                    )}
-
-                    {/* Metadata Footer: Frequency + Last Seen */}
-                    <div className="flex items-center space-x-3 text-[11px] text-slate-400 font-medium">
-                      <span className="px-2 py-0.5 rounded-md bg-slate-800/80 text-slate-300 font-bold">
-                        {mapping.frequency} {mapping.frequency === 1 ? 'time' : 'times'}
-                      </span>
-                      <span>
-                        Last paid: {mapping.last_seen} ({getRelativeDaysText(mapping.last_seen)})
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+              {displayedList.map(([vendor, mapping]) => renderVendorCard(vendor, mapping))}
 
               {displayedList.length === 0 && (
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-400 shadow-md space-y-1.5">
@@ -943,84 +985,10 @@ export const CategoryMapperView: React.FC<CategoryMapperViewProps> = ({
             </div>
           )}
 
-          {/* TAB 2: INBOX (No redundant orange Unindexed label) */}
+          {/* TAB 2: INBOX */}
           {activeTab === 'inbox' && (
             <div className="space-y-2.5">
-              {displayedList.map(([vendor, mapping]) => {
-                const isFrequent = mapping.frequency >= 3;
-                return (
-                  <div
-                    key={vendor}
-                    className={`border rounded-2xl p-4 shadow-sm space-y-2 transition-all ${
-                      isFrequent
-                        ? 'bg-slate-900 border-indigo-500/40 ring-1 ring-indigo-500/20'
-                        : 'bg-slate-900 border-slate-800 hover:border-slate-700/80'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 space-y-0.5">
-                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                          <span className="font-bold text-sm sm:text-base text-white truncate">
-                            {vendor}
-                          </span>
-                          {isFrequent && (
-                            <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-full border border-indigo-500/40 bg-indigo-500/15 text-indigo-300 text-[11px] font-bold shrink-0">
-                              <Sparkles className="w-3 h-3 text-indigo-400" />
-                              <span>Recurring</span>
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-slate-400">
-                          Discovered payee · Ready to map into Cashew
-                        </p>
-                      </div>
-
-                      {/* Card Actions: Quick Index Button + Delete */}
-                      <div className="flex items-center space-x-1.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenIndexFromInbox(vendor, mapping)}
-                          className="flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-600/20 transition-all cursor-pointer active:scale-95"
-                        >
-                          <Zap className="w-3.5 h-3.5" />
-                          <span>Index</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(vendor)}
-                          title="Delete one-off entry"
-                          className="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Description Notes (if present) */}
-                    {mapping.description && (
-                      <p className="text-xs text-slate-400 italic bg-slate-950/40 px-3 py-1.5 rounded-lg border border-slate-800/60">
-                        {mapping.description}
-                      </p>
-                    )}
-
-                    {/* Metadata Footer: Frequency + Last Seen */}
-                    <div className="flex items-center space-x-3 text-[11px] text-slate-400 font-medium">
-                      <span
-                        className={`px-2 py-0.5 rounded-md font-bold ${
-                          isFrequent
-                            ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
-                            : 'bg-slate-800/80 text-slate-300'
-                        }`}
-                      >
-                        {mapping.frequency} {mapping.frequency === 1 ? 'time' : 'times'}
-                      </span>
-                      <span>
-                        Last paid: {mapping.last_seen} ({getRelativeDaysText(mapping.last_seen)})
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+              {displayedList.map(([vendor, mapping]) => renderVendorCard(vendor, mapping))}
 
               {displayedList.length === 0 && (
                 <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-400 shadow-md space-y-1.5">
@@ -1240,48 +1208,9 @@ export const CategoryMapperView: React.FC<CategoryMapperViewProps> = ({
                 </button>
               </div>
 
-              {/* Live Preview List with Individual Row Removal */}
-              <div className="space-y-2">
-                {pruneMatchingList.map(([vendor, mapping]) => (
-                  <div
-                    key={vendor}
-                    className="bg-slate-900/90 border border-slate-800/80 hover:border-slate-700 rounded-xl px-4 py-2.5 shadow-sm flex items-center justify-between gap-3 transition-all"
-                  >
-                    <div className="min-w-0 space-y-0.5">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-bold text-xs sm:text-sm text-white truncate">
-                          {vendor}
-                        </span>
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.2 rounded-full border ${
-                            mapping.is_indexed
-                              ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300'
-                              : 'bg-slate-800 text-slate-400 border-slate-700'
-                          }`}
-                        >
-                          {mapping.is_indexed ? 'Mapped' : 'Inbox'}
-                        </span>
-                      </div>
-                      <div className="flex items-center space-x-2 text-[11px] text-slate-400">
-                        <span>{mapping.frequency} occurrences</span>
-                        <span>·</span>
-                        <span>
-                          Last seen: {mapping.last_seen} ({getRelativeDaysText(mapping.last_seen)})
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Individual Delete from Preview */}
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(vendor)}
-                      title="Delete single vendor"
-                      className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer shrink-0"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+              {/* Live Preview List with Full Consistent Vendor Card UI */}
+              <div className="space-y-2.5">
+                {pruneMatchingList.map(([vendor, mapping]) => renderVendorCard(vendor, mapping))}
 
                 {pruneMatchingList.length === 0 && (
                   <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center text-slate-400 shadow-md space-y-1">
