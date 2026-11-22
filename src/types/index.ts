@@ -25,8 +25,12 @@ export interface UserProfile {
 }
 
 export interface VendorMapping {
+  is_indexed: boolean;
   category: string;
   title: string;
+  description?: string;
+  frequency: number;
+  last_seen: string; // YYYY-MM-DD
 }
 
 export type CategoryMapperData = Record<string, VendorMapping>;
