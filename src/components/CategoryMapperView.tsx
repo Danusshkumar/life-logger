@@ -20,7 +20,6 @@ import {
   Inbox as InboxIcon,
   Eraser,
   Sparkles,
-  ArrowUpDown,
   Save,
 } from 'lucide-react';
 import type { CategoryMapperData, VendorMapping } from '../types';
